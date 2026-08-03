@@ -1,25 +1,26 @@
 # Design System Notes
 
-**Status:** Draft (from product brief)
+**Status:** Initial tokens — final palettes may change after first shell  
 
-## Style
+## Surfaces
 
-Premium, minimal, modern, mobile-first.
+| Surface | Theme |
+|---------|--------|
+| Public + Student | Light |
+| Admin + Teacher (shared dashboard shell) | Dark |
 
 ## Fonts
 
 - Poppins  
 - Inter  
 
-## Colors
+## Colors (v1 placeholders from brief — adjustable later)
 
-| Token | Hex |
-|-------|-----|
-| Navy | `#0F172A` |
-| Blue | `#2563EB` |
-| White | `#FFFFFF` |
-| Light Gray | `#F8FAFC` |
+| Token | Hex | Notes |
+|-------|-----|--------|
+| Navy | `#0F172A` | Dark shell background / light text contrast base |
+| Blue | `#2563EB` | Primary accent (both themes) |
+| White | `#FFFFFF` | Light surfaces |
+| Light Gray | `#F8FAFC` | Light page background |
 
-## Implementation note
-
-When scaffolding `apps/web`, map these to CSS variables / Tailwind theme tokens. Expand with spacing, radius, and typography scale during UI build — keep brand tokens stable.
+Dark shell will derive surfaces from Navy + muted borders; light shell uses White / Light Gray. You can replace these after Phase 0 without restructuring layouts.

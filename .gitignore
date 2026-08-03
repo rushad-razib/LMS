@@ -39,3 +39,6 @@ uploads/
 #   git rm --cached README.md docs/README.md docs/decisions/README.md
 **/README.md
 **/readme.md
+
+# Keep root project README publishable when you remove the rules above.
+# During Phase 0, root README.md is local-only per planning preference.

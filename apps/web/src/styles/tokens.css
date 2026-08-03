@@ -1,0 +1,29 @@
+/**
+ * Theme tokens — placeholders from product brief.
+ * Swap these later without changing layout structure.
+ */
+:root,
+[data-theme="light"] {
+  --color-navy: #0f172a;
+  --color-blue: #2563eb;
+  --color-white: #ffffff;
+  --color-light-gray: #f8fafc;
+
+  --surface: var(--color-light-gray);
+  --surface-elevated: var(--color-white);
+  --ink: var(--color-navy);
+  --ink-muted: #64748b;
+  --border: #e2e8f0;
+  --accent: var(--color-blue);
+  --accent-fg: #ffffff;
+}
+
+[data-theme="dark"] {
+  --surface: #0b1220;
+  --surface-elevated: #111827;
+  --ink: #f8fafc;
+  --ink-muted: #94a3b8;
+  --border: #1f2a3d;
+  --accent: #3b82f6;
+  --accent-fg: #ffffff;
+}

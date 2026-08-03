@@ -1,0 +1,16 @@
+{
+  "name": "ar-visionary-academy",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "db:generate": "pnpm --filter @arva/api db:generate",
+    "db:push": "pnpm --filter @arva/api db:push"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}
