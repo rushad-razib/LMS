@@ -19,7 +19,9 @@ export function createApp(env: Env) {
       credentials: true,
     }),
   );
-  app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+  if (env.NODE_ENV !== "test") {
+    app.use(morgan(env.NODE_ENV === "production" ? "combined" : "dev"));
+  }
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 

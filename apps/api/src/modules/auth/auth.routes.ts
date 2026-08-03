@@ -23,7 +23,9 @@ function setRefreshCookie(res: import("express").Response, token: string) {
 }
 
 function clearRefreshCookie(res: import("express").Response) {
-  res.clearCookie("refreshToken", refreshCookieOptions());
+  const opts = refreshCookieOptions();
+  const { maxAge: _maxAge, ...clearOpts } = opts;
+  res.clearCookie("refreshToken", clearOpts);
 }
 
 authRouter.post("/register", validateBody(RegisterInputSchema), async (req, res, next) => {

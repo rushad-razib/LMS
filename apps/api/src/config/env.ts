@@ -21,6 +21,10 @@ export type Env = z.infer<typeof envSchema>;
 
 let cached: Env | null = null;
 
+export function resetEnvCache() {
+  cached = null;
+}
+
 export function loadEnv(): Env {
   if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);

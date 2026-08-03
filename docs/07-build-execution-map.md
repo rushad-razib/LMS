@@ -74,6 +74,8 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 
 **Checkpoint:** Verified student reaches `/student`; unverified blocked when toggle ON; admin/teacher gates work.
 
+**Tests:** `apps/api/src/modules/auth/auth.phase1.test.ts` — run `pnpm test:api`
+
 ### Phase 2 — Courses, batches, teacher assignment
 **Deliverable:** Admin CRUD courses/batches; one teacher per batch; public course list/detail (Buy button stub)
 
@@ -133,5 +135,12 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 2. Short demo / review notes  
 3. You feedback (including theme tweaks anytime after Phase 0)  
 4. Next phase  
+
+## Testing
+
+- Runner: **Vitest** (+ Supertest for API)
+- Phase 0: no tests (scaffold only)
+- Each feature phase adds regression tests under the relevant package
+- Command: `pnpm test` or `pnpm test:api`
 
 Say **confirm shell** (shared dark Admin+Teacher, light Student+public) to start **Phase 0**.

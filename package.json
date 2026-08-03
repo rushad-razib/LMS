@@ -8,7 +8,9 @@
     "lint": "turbo run lint",
     "db:generate": "pnpm --filter @arva/api db:generate",
     "db:push": "pnpm --filter @arva/api db:push",
-    "db:seed": "pnpm --filter @arva/api db:seed"
+    "db:seed": "pnpm --filter @arva/api db:seed",
+    "test": "turbo run test",
+    "test:api": "pnpm --filter @arva/api test"
   },
   "devDependencies": {
     "turbo": "^2.3.3",
