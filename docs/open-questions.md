@@ -1,43 +1,27 @@
 # Open Questions
 
-## Round 2 — Courses, Purchases, Student Portal (answer next)
+Remaining items are non-blocking for architecture (content/assets).
 
-**P1.** Payment in v1:  
-- **A)** Online gateway (SSLCommerz / bKash / Nagad)  
-- **B)** Manual unlock (Admin marks paid)  
-- **C)** Mix: free = instant enroll; paid = A or B *(recommended)*  
+## Content / ops (when available)
 
-**C1.** Store prices as whole **BDT integers**? *(recommended: yes)*  
-
-**C3.** Course outline on public/marketing page: plain text / bullet list only in v1? *(recommended: yes)*  
-
-**C4.** Remove public **Admission** page; Contact + Buy only? *(recommended: yes)*  
-
-**S2.** Multiple concurrent **course** enrollments? *(recommended: yes)*  
-
-**S3.** No standalone `/student/downloads` — materials only under batch? *(recommended: yes)*  
-
-**T1.** Teacher creates **Live Sessions** with: title, start datetime, optional end, Meet/Zoom URL, optional notes? *(recommended: yes — matches B5)*  
-
-**E1.** Email verification required before purchase? *(recommended: optional in v1 — can buy with registered account)*  
+21. Real copy, logos, trainer bios, success stories  
+22. Official contact, WhatsApp, map embed values  
+23. SSLCommerz + Resend + S3 account credentials for staging  
 
 ---
 
-## Later workshops
-
-Admin CMS blog format · Contact DB · Media storage · Email provider · Real brand assets
-
----
-
-### Resolved
+### Resolved (Round 3)
 
 | # | Decision | Date |
 |---|----------|------|
-| R1–R8 | LMS + public register + batches + teacher portal + Meet links | 2026-08-03 |
-| **B1** | Before batch assign: ownership only — **no materials** (A) | 2026-08-03 |
-| **B2** | Exactly **one primary teacher** per batch (A) | 2026-08-03 |
-| **B3** | Checkout has **no batch picker**; Admin assigns only | 2026-08-03 |
-| **B4** | Admin may **reassign students and teachers** across batches | 2026-08-03 |
-| **B5** | **Many dated live sessions** per batch (title/schedule + pasted Meet/Zoom URL) | 2026-08-03 |
-| **B6** | Email **all** batch students on each announcement | 2026-08-03 |
-| **B7** | Materials = **batch uploads** + optional **course outline text** | 2026-08-03 |
+| A1 | Blog body = **rich-text editor** | 2026-08-03 |
+| A2 | Single `ADMIN` role; Admins can **create other Admins** | 2026-08-03 |
+| A3 | SSLCommerz (and secrets) = **env vars only** | 2026-08-03 |
+| L1 | Contact → DB Lead + email admin | 2026-08-03 |
+| M1 | **S3-compatible** storage | 2026-08-03 |
+| M2 | Materials 10MB, images 2MB; **auto WebP** via shared image service | 2026-08-03 |
+| N1 | Email = **Resend** | 2026-08-03 |
+
+### Resolved (earlier rounds)
+
+See prior tables in git history / module docs — B1–B7, P1, C1–C4, S2–S3, T1, E1, R1–R8.

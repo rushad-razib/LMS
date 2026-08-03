@@ -9,6 +9,8 @@ Living requirements and architecture for **AR Visionary Academy** (parent: AR Ve
 3. Architecture decisions are recorded as ADRs in [`decisions/`](decisions/).
 4. Application code is scaffolded only after the docs set for a phase is approved.
 
+**Docs set status:** [Approved 2026-08-03](APPROVAL.md)
+
 **Status values:** `Draft` → `Clarified` → `Approved`
 
 ## Locked stack

@@ -1,41 +1,34 @@
 # Module: Contact & Leads
 
-**Status:** Draft
+**Status:** Clarified (Round 3)
 
 ## Purpose
 
-Lead generation and inquiry channel; public contact page.
+Public contact page + lead capture.
 
-## Contact page (from brief)
+## Page contents
 
 - Contact form  
-- WhatsApp button  
-- Email  
-- Phone  
-- Office address  
-- Google Map  
-- Business hours  
+- WhatsApp deep link (`wa.me`)  
+- Email, phone, address, business hours (from Settings)  
+- Google Map embed (from Settings)  
 
-## Recommended defaults (pending confirmation)
+## Form fields
 
-1. Contact form stores a **Lead** row in DB + sends email to admin.  
-2. WhatsApp is a deep link (`https://wa.me/<number>`) only — no WhatsApp Business API in v1.  
-3. Map via Google Maps embed URL from Website Settings.  
+- Name, Email, Phone, Subject, Message  
 
-## Form fields (draft proposal)
+## Locked behavior
 
-- Name  
-- Email  
-- Phone  
-- Subject  
-- Message  
+1. Persist submission as **Lead** in DB  
+2. Email Admin via Resend  
+3. Success message on UI even if email fails (log failure); prefer both succeed  
 
-## Open questions
+## Admin
 
-See [open-questions.md](../open-questions.md) — Contact section.
+- List / view leads (mark read optional nice-to-have)  
 
-## Acceptance criteria (draft)
+## Acceptance criteria
 
-- [ ] Form validation + success message  
-- [ ] Admin can list leads (if DB-backed)  
-- [ ] WhatsApp / email / phone / map render from settings  
+- [ ] Validation + spam-friendly rate limit  
+- [ ] Lead row created  
+- [ ] Admin notification email attempted  

@@ -1,21 +1,28 @@
 # Module: Notifications
 
-**Status:** Draft (batch-aware)
+**Status:** Clarified (Round 3)  
+**Provider:** **Resend** (`RESEND_API_KEY` in env)
 
-## Events (v1 draft)
+## Events
 
-| Event | Recipient | Channel |
-|-------|-----------|---------|
-| Registered | Student | Optional welcome email |
-| Order paid / enrollment created | Student | Email |
-| **Batch assigned / reassigned** | Student | **Email (required)** |
-| **Batch announcement posted** | Students in batch | **Email (recommended)** |
-| Live link updated | Students in batch | Email optional / announcement |
-| Password reset | User | Email |
-| Contact form | Admin | Email |
-| Teacher invited | Teacher | Set-password email |
+| Event | Recipient |
+|-------|-----------|
+| Email verification (register / admin-create student) | Student |
+| Resend verification | Student |
+| Order paid (SSLCommerz) | Student |
+| Admin enrolled student | Student |
+| Batch assigned / reassigned | Student |
+| Batch announcement | All students in batch |
+| Password reset | User |
+| Teacher / Admin invite (set-password) | Teacher / Admin |
+| Contact form | Admin inbox address from settings |
 
-## Defaults
+## Rules
 
-- SMTP or provider TBD  
-- No SMS / WhatsApp API in v1  
+- Failures logged; do not roll back enrollment/announcement persistence unless transactionally required  
+- From-domain configured in Resend  
+
+## Acceptance criteria
+
+- [ ] Verification + batch emails deliver in staging with Resend  
+- [ ] Contact lead notifies admin  

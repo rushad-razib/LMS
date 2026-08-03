@@ -1,24 +1,39 @@
 # Module: Media Uploads
 
-**Status:** Draft
+**Status:** Clarified (Round 3)
 
-## Purpose
+## Storage
 
-Store admission photos, gallery images, blog covers, downloadable files.
+- **S3-compatible** object storage (AWS S3, Cloudflare R2, MinIO, etc.)  
+- Private or signed URLs for batch materials; public CDN URLs for marketing images as appropriate  
 
-## Recommended defaults (pending confirmation)
+## Size limits
 
-1. **v1 storage:** local disk on VPS behind Express static/authenticated file routes **or** S3-compatible bucket (recommend S3-compatible if multiple servers / backups matter).  
-2. Allowed types: images `jpeg/png/webp`; downloads also `pdf`.  
-3. Max size: e.g. 2MB photo, 10MB download (confirm).  
-4. Virus scanning out of scope for v1.  
+| Kind | Max |
+|------|-----|
+| Images (covers, gallery, avatars, etc.) | **2MB** (pre-conversion input) |
+| Materials / documents (PDF, etc.) | **10MB** |
 
-## Open questions
+## Shared image service (locked)
 
-See [open-questions.md](../open-questions.md) — Media section.
+All image uploads go through a **common media service** that:
 
-## Acceptance criteria (draft)
+1. Accepts `png`, `jpg`, `jpeg` (and optionally `webp` passthrough)  
+2. **Converts** png/jpg/jpeg → **WebP** before storing  
+3. Rejects other image types / oversized files  
+4. Returns stored object key + public/signed URL  
 
-- [ ] Optional admission photo uploads successfully  
-- [ ] Rejected MIME/size returns clear error  
-- [ ] Student downloads only authorized files  
+Documents (PDF, etc.) skip image conversion; store as-is with MIME allowlist.
+
+## Used by
+
+- Student/teacher/admin avatars & photos  
+- Blog covers, gallery  
+- Batch material file uploads  
+- Course marketing images  
+
+## Acceptance criteria
+
+- [ ] png/jpg/jpeg stored as webp  
+- [ ] Size/MIME validation  
+- [ ] Single service used by all upload endpoints  

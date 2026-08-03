@@ -11,9 +11,9 @@
 [Express API on VPS]
         |
         +-- PostgreSQL
-        +-- File storage (disk or S3-compatible)
-        +-- SMTP / email provider
-        +-- Payment provider (if gateway chosen in Round 2)
+        +-- S3-compatible storage (+ WebP image pipeline)
+        +-- Resend (email)
+        +-- SSLCommerz (online checkout)
 ```
 
 ## Product shape

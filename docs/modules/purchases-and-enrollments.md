@@ -1,41 +1,57 @@
 # Module: Purchases & Enrollments
 
-**Status:** Clarified (batch rules locked; payment method Round 2)  
-**Depends on:** Auth, Courses/Batches, Notifications
+**Status:** Clarified (Round 2 payment locked)  
+**Depends on:** Auth, Courses/Batches, Notifications, SSLCommerz
 
-## Lifecycle
+## Two enrollment channels
+
+### 1. Frontend — online gateway (required)
+
+- Student (verified, when setting ON) buys course on site  
+- Payment via **SSLCommerz** (cards and other methods SSLCommerz already supports)  
+- On payment success → `Order PAID` → `Enrollment ACTIVE`, `batchId = null`  
+- Admin later assigns batch  
+
+### 2. Admin panel — office / assisted enroll
+
+For walk-ins who pay at the office (cash, card terminal, or other means):
+
+- Admin selects/creates student + course  
+- Records payment method note (`CASH`, `CARD`, `SSLCOMMERZ_OFFLINE`, `OTHER`, etc.)  
+- Creates `Order` (marked paid/manual) + `Enrollment`  
+- Optionally assign batch in same flow or later  
+- Does **not** require the student to complete frontend checkout  
 
 ```text
-Buy Course (no batch UI)
-  → Order paid/approved
-  → Enrollment ACTIVE, batchId = null   # awaiting batch
-  → Admin assigns batch
-  → Email student
-  → Cohort access (materials, announcements, live sessions)
-
-Admin may reassign enrollment.batchId → another batch of same course → email
+Frontend:  Register → Verify → Buy (SSLCommerz) → Enrollment → Admin assigns batch
+Office:    Admin enrolls student (+ payment note) → Enrollment → Admin assigns batch
 ```
 
 ## Access rules
 
 | State | Can see |
 |-------|---------|
-| Not purchased | Marketing course page only |
-| Purchased, `batchId` null | My Courses entry + **Awaiting batch assignment** (no cohort content) |
-| Purchased, batch assigned | Batch materials, announcements, live sessions |
+| Not enrolled | Marketing only |
+| Enrolled, `batchId` null | Awaiting batch (no cohort content) |
+| Batch assigned | Materials, announcements, live sessions |
 
-## Admin
+## Checkout UI
 
-- Filter enrollments needing batch  
-- Assign / reassign batch (same course’s batches only)  
-- Manual grant / revoke enrollment  
+- **No batch picker** ever on frontend  
 
-## Payment
+## Prices
 
-Method TBD Round 2 (P1).
+- Whole **BDT integers** (`priceBdt`)  
+- Free courses (`0`): still create enrollment without gateway charge (instant), then await batch  
+
+## Data sketch
+
+- `Order`: userId, courseId, amountBdt, channel (`ONLINE` | `ADMIN`), paymentMethod?, provider, providerRef?, status, createdAt  
+- `Enrollment`: userId, courseId, orderId?, batchId?, status, …
 
 ## Acceptance criteria
 
-- [ ] Checkout never lists batches  
-- [ ] Assignment and reassignment email student  
-- [ ] Gating enforced on APIs  
+- [ ] Frontend paid path goes through SSLCommerz  
+- [ ] Admin can enroll without frontend payment  
+- [ ] Both paths produce enrollment awaiting batch  
+- [ ] Assignment/reassignment emails fire  

@@ -1,6 +1,6 @@
 # Project Brief
 
-**Status:** Clarified (batches + teacher portal added 2026-08-03)  
+**Status:** Approved (2026-08-03)  
 **Project:** AR Visionary Academy  
 **Parent company:** AR Ventures
 
@@ -57,9 +57,11 @@
 
 ## In scope for v1 (updated)
 
-- Batches (required operationally after purchase)
-- Live class **links** (Zoom/Google Meet URLs posted by teacher/admin)
-- Teacher portal (scoped to assigned batches)
+- Batches (required operationally after purchase/admin enroll)
+- Live sessions with Meet/Zoom URLs
+- Teacher portal (assigned batches)
+- SSLCommerz checkout on frontend + Admin office enroll
+- Email verification for students (Admin Settings toggle for dev)
 - Email on batch assignment and batch announcements
 
 ## Explicitly out of scope for v1
@@ -70,8 +72,9 @@
 - Mobile app  
 - Multi-vendor marketplace  
 - Public teacher self-signup (Admin creates teacher accounts)
+- Public Admission / admin-gated admission pipeline
 
-**Payment:** Mechanism TBD in Round 2 (gateway vs manual). Purchase remains the enrollment trigger before batch assignment.
+**Payment:** Frontend = **SSLCommerz**. Admin panel can enroll for walk-in cash/card/other.
 
 ## Non-goals
 
@@ -83,4 +86,4 @@
 
 ## Success criteria (draft)
 
-Register/login, buy course, admin assigns batch, student sees materials + live link, teacher can post for their batch, emails for assignment/announcements, SSL, basic SEO.
+Register → verify email → buy via SSLCommerz (or Admin enroll) → batch assign → materials/sessions; teacher tools; SSL; basic SEO.

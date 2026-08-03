@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Env & secrets
+.env
+.env.*
+!.env.example
+
+# Builds
+dist/
+build/
+coverage/
+.turbo/
+*.tsbuildinfo
+
+# Logs & OS
+logs/
+*.log
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Prisma
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+
+# Uploads / local temp
+tmp/
+uploads/
+.cache/
+
+# README excluded from GitHub for now (remove this line when ready to publish)
+README.md
+readme.md

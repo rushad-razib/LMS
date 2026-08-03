@@ -1,16 +1,15 @@
 # Architecture Decision Records
 
-ADRs capture significant technical choices. Status: Proposed → Accepted → Superseded.
-
 | ID | Title | Status |
 |----|-------|--------|
-| ADR-001 | Monorepo + pnpm/Turborepo | Proposed (aligned with locked plan) |
-| ADR-002 | Express layered modules | Proposed |
-| ADR-003 | Prisma + PostgreSQL | Proposed |
-| ADR-004 | Auth strategy (JWT + roles) | Proposed — pending Auth workshop |
-| ADR-005 | File uploads storage | Proposed — pending Media workshop |
-| ADR-006 | Email / admin alerts | Proposed — pending Notifications workshop |
-| ADR-007 | SPA routing + SEO strategy | Proposed |
-| ADR-008 | Hosting, SSL, backups | Proposed |
+| [ADR-001](ADR-001-monorepo.md) | Monorepo + pnpm/Turborepo | Accepted |
+| [ADR-002](ADR-002-express-layers.md) | Express layered modules | Accepted |
+| [ADR-003](ADR-003-prisma-postgres.md) | Prisma + PostgreSQL | Accepted |
+| [ADR-004](ADR-004-auth.md) | JWT, roles, email verification | Accepted |
+| [ADR-005](ADR-005-media.md) | S3 + WebP image service | Accepted |
+| [ADR-006](ADR-006-email-resend.md) | Resend email | Accepted |
+| [ADR-007](ADR-007-spa-seo.md) | SPA routing + SEO | Accepted |
+| [ADR-008](ADR-008-hosting.md) | Hosting, SSL, backups | Accepted |
+| [ADR-009](ADR-009-payments.md) | SSLCommerz + Admin enroll | Accepted |
 
-Full ADR files will be written in Phase 3 after module workshops settle open questions. Until then, locked decisions in [../README.md](../README.md) and [../01-project-brief.md](../01-project-brief.md) are authoritative.
+Authoritative product rules live in module docs under [`../modules/`](../modules/).

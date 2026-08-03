@@ -5,6 +5,7 @@
 ## Public nav
 
 Home · About · Courses · Trainers · Blog · Contact · Login · Register  
+*(Admission removed from nav)*  
 
 ## Public routes
 
