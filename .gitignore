@@ -34,6 +34,8 @@ tmp/
 uploads/
 .cache/
 
-# README excluded from GitHub for now (remove this line when ready to publish)
-README.md
-readme.md
+# README excluded from GitHub for now (remove these lines when ready to publish)
+# Note: already-tracked READMEs must be removed from the index once:
+#   git rm --cached README.md docs/README.md docs/decisions/README.md
+**/README.md
+**/readme.md
