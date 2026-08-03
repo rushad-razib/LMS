@@ -10,7 +10,7 @@
         v
 [Express API on VPS]
         |
-        +-- PostgreSQL
+        +-- MySQL
         +-- S3-compatible storage (+ WebP image pipeline)
         +-- Resend (email)
         +-- SSLCommerz (online checkout)
@@ -38,7 +38,7 @@ Single-vendor LMS: public register → buy/enroll → gated course materials.
 ## Express layering (per module)
 
 ```text
-routes → controllers → services → repositories (Prisma) → PostgreSQL
+routes → controllers → services → repositories (Prisma) → MySQL
 ```
 
 Cross-cutting: `config`, `middleware` (auth, validate, rate-limit, error), `common/errors`.

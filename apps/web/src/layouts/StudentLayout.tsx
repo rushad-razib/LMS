@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { ThemeRoot } from "@/components/ThemeRoot";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 const links = [
   { to: "/student", label: "Dashboard", end: true },
@@ -8,6 +9,8 @@ const links = [
 ];
 
 export function StudentLayout() {
+  const { user, logout } = useAuth();
+
   return (
     <ThemeRoot theme="light">
       <div className="min-h-screen bg-surface text-ink">
@@ -17,7 +20,7 @@ export function StudentLayout() {
               <p className="text-xs font-medium uppercase tracking-wide text-ink-muted">
                 Student portal
               </p>
-              <p className="font-display font-semibold">AR Visionary Academy</p>
+              <p className="font-display font-semibold">{user?.fullName ?? "Student"}</p>
             </div>
             <nav className="flex flex-wrap gap-1">
               {links.map((link) => (
@@ -43,6 +46,13 @@ export function StudentLayout() {
               >
                 Site
               </NavLink>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="rounded-lg px-3 py-2 text-sm text-ink-muted hover:text-ink"
+              >
+                Logout
+              </button>
             </nav>
           </div>
         </header>

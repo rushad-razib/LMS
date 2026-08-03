@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -19,14 +19,56 @@ enum UserStatus {
   DISABLED
 }
 
-/// Phase 0 stub — full schema expands in later phases
+enum AuthTokenType {
+  EMAIL_VERIFY
+  PASSWORD_RESET
+  SET_PASSWORD
+  REFRESH
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
   passwordHash    String?
+  fullName        String
   role            Role
   status          UserStatus @default(PENDING_VERIFICATION)
   emailVerifiedAt DateTime?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+
+  studentProfile StudentProfile?
+  tokens         AuthToken[]
+}
+
+model StudentProfile {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  phone     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuthToken {
+  id        String        @id @default(cuid())
+  userId    String
+  type      AuthTokenType
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId, type])
+}
+
+/// Singleton row id = "default"
+model WebsiteSettings {
+  id                        String   @id @default("default")
+  emailVerificationRequired Boolean  @default(true)
+  updatedAt                 DateTime @updatedAt
 }

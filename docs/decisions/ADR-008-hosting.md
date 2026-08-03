@@ -6,8 +6,8 @@
 ## Decision
 
 - `apps/web` static build → Vercel or CDN/nginx  
-- `apps/api` + PostgreSQL on **VPS** behind nginx with **SSL** (Let's Encrypt)  
-- Daily PostgreSQL backups (cron + offsite copy)  
+- `apps/api` + MySQL on **VPS** behind nginx with **SSL** (Let's Encrypt)  
+- Daily MySQL backups (cron + offsite copy)  
 - S3 versioning/lifecycle as available  
 
 ## Consequences

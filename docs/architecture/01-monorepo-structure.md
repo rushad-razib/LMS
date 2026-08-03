@@ -52,7 +52,7 @@ ar-visionary-academy/
 
 - **Package manager:** pnpm workspaces  
 - **Task runner:** Turborepo  
-- **ORM:** Prisma → PostgreSQL  
+- **ORM:** Prisma → MySQL  
 - **API validation:** Zod (shared schemas where useful)  
 
 ## Deploy mapping
@@ -61,4 +61,4 @@ ar-visionary-academy/
 |---------|----------|------|
 | `apps/web` | Static `dist/` | Vercel or nginx/CDN |
 | `apps/api` | Node process | VPS behind nginx + SSL |
-| PostgreSQL | Managed or VPS | Daily backup (ADR-008) |
+| MySQL | Managed or VPS | Daily backup (ADR-008) |

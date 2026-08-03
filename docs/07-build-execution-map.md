@@ -57,13 +57,14 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 - pnpm + Turborepo: `apps/web`, `apps/api`, `packages/shared`  
 - Vite React + Tailwind + React Router  
 - Express layered folder skeleton  
-- Prisma + PostgreSQL connection stub (`User` model)  
+- Prisma + MySQL connection stub (`User` model)  
 - Design tokens: light (public/student) + dark (dashboard) — editable in `apps/web/src/styles/tokens.css`  
 - Shared `DashboardLayout` wired to `/admin` and `/teacher` stubs  
 
 **Checkpoint:** `pnpm dev` brings up web + api; `GET /api/v1/health` OK.
 
 ### Phase 1 — Auth & accounts
+**Status:** Complete (MySQL `lms` schema pushed + admin seeded)  
 **Deliverable:** Register / login / logout / password reset / email verification / role guards
 
 - JWT + refresh cookie  

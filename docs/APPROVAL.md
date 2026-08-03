@@ -7,7 +7,7 @@ The docs set under `docs/` is approved as the v1 source of truth for AR Visionar
 
 ## Approved scope (summary)
 
-- Stack: Vite + React SPA, Express + TypeScript, PostgreSQL + Prisma, monorepo  
+- Stack: Vite + React SPA, Express + TypeScript, MySQL + Prisma, monorepo  
 - Public student registration + email verification (Admin toggle)  
 - SSLCommerz frontend purchase + Admin office enroll  
 - Batches, one teacher per batch, live sessions (Meet/Zoom URLs)  

@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from "react-router-dom";
 import { ThemeRoot } from "@/components/ThemeRoot";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 export type DashboardNavItem = {
   to: string;
@@ -14,6 +15,8 @@ type DashboardLayoutProps = {
 };
 
 export function DashboardLayout({ portal, title, nav }: DashboardLayoutProps) {
+  const { user, logout } = useAuth();
+
   return (
     <ThemeRoot theme="dark">
       <div className="flex min-h-screen bg-surface text-ink">
@@ -23,6 +26,7 @@ export function DashboardLayout({ portal, title, nav }: DashboardLayoutProps) {
               {portal} panel
             </p>
             <p className="font-display text-lg font-semibold">{title}</p>
+            <p className="mt-1 truncate text-xs text-ink-muted">{user?.email}</p>
           </div>
           <nav className="flex flex-1 flex-col gap-1 p-3">
             {nav.map((item) => (
@@ -43,18 +47,33 @@ export function DashboardLayout({ portal, title, nav }: DashboardLayoutProps) {
               </NavLink>
             ))}
           </nav>
-          <div className="border-t border-border p-3 text-xs text-ink-muted">
-            Shared dark shell · Phase 0
+          <div className="border-t border-border p-3">
+            <button
+              type="button"
+              onClick={() => logout()}
+              className="w-full rounded-lg px-3 py-2 text-left text-sm text-ink-muted hover:bg-surface hover:text-ink"
+            >
+              Logout
+            </button>
           </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <header className="flex items-center justify-between border-b border-border bg-surface-elevated px-4 py-3 md:px-6">
             <p className="font-display font-semibold md:hidden">{title}</p>
-            <p className="text-sm text-ink-muted">AR Visionary Academy</p>
-            <NavLink to="/" className="text-sm text-accent hover:underline">
-              View site
-            </NavLink>
+            <p className="text-sm text-ink-muted">{user?.fullName}</p>
+            <div className="flex items-center gap-3">
+              <NavLink to="/" className="text-sm text-accent hover:underline">
+                View site
+              </NavLink>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="text-sm text-ink-muted hover:text-ink md:hidden"
+              >
+                Logout
+              </button>
+            </div>
           </header>
 
           <div className="flex gap-1 overflow-x-auto border-b border-border p-2 md:hidden">

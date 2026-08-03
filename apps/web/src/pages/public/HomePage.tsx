@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_NAME } from "@arva/shared";
+import { useAuth } from "@/features/auth/AuthProvider";
 
 export function HomePage() {
+  const { user } = useAuth();
   const [apiOk, setApiOk] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -11,6 +13,13 @@ export function HomePage() {
       .then((data) => setApiOk(Boolean(data?.ok)))
       .catch(() => setApiOk(false));
   }, []);
+
+  const portal =
+    user?.role === "ADMIN"
+      ? "/admin"
+      : user?.role === "TEACHER"
+        ? "/teacher"
+        : "/student";
 
   return (
     <section className="relative overflow-hidden">
@@ -34,27 +43,16 @@ export function HomePage() {
             Explore Courses
           </Link>
           <Link
-            to="/register"
+            to={user ? portal : "/register"}
             className="rounded-lg border border-border bg-surface-elevated px-5 py-3 text-sm font-semibold text-ink"
           >
-            Register
+            {user ? "Open portal" : "Register"}
           </Link>
         </div>
         <p className="mt-10 text-sm text-ink-muted">
           API health:{" "}
           {apiOk === null ? "checking…" : apiOk ? "connected" : "offline (start api)"}
         </p>
-        <div className="mt-6 flex flex-wrap gap-3 text-sm">
-          <Link className="text-accent hover:underline" to="/admin">
-            Admin shell
-          </Link>
-          <Link className="text-accent hover:underline" to="/teacher">
-            Teacher shell
-          </Link>
-          <Link className="text-accent hover:underline" to="/student">
-            Student shell
-          </Link>
-        </div>
       </div>
     </section>
   );

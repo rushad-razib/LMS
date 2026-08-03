@@ -28,9 +28,9 @@
 
 - Frontend: Vite + React SPA + TypeScript + Tailwind CSS + React Router  
 - Backend: Express + TypeScript (modular layered architecture)  
-- Database: PostgreSQL + Prisma  
-- Monorepo: `apps/web`, `apps/api`, `packages/shared`  
-- Hosting: static SPA + VPS for API and PostgreSQL  
+- Database: MySQL + Prisma
+- Monorepo: `apps/web`, `apps/api`, `packages/shared`
+- Hosting: static SPA + VPS for API and MySQL
 
 ## Design direction
 
