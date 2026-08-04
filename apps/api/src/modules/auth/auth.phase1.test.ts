@@ -284,10 +284,11 @@ describe("Phase 1 — Auth", () => {
     });
 
     const cookie = registered.headers["set-cookie"];
-    const logout = await api(app).post("/api/v1/auth/logout").set("Cookie", cookie);
+    expect(cookie).toBeTruthy();
+    const logout = await api(app).post("/api/v1/auth/logout").set("Cookie", cookie!);
     expect(logout.status).toBe(200);
 
-    const refresh = await api(app).post("/api/v1/auth/refresh").set("Cookie", cookie);
+    const refresh = await api(app).post("/api/v1/auth/refresh").set("Cookie", cookie!);
     expect(refresh.status).toBe(401);
   });
 });

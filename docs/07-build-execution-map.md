@@ -77,13 +77,16 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 **Tests:** `apps/api/src/modules/auth/auth.phase1.test.ts` — run `pnpm test:api`
 
 ### Phase 2 — Courses, batches, teacher assignment
+**Status:** Complete  
 **Deliverable:** Admin CRUD courses/batches; one teacher per batch; public course list/detail (Buy button stub)
 
 - Course outline text, price BDT  
 - Batch assign/reassign teacher  
 - Public catalog pages (light)  
 
-**Checkpoint:** Seed 6 courses; admin creates batch + assigns teacher.
+**Checkpoint:** Seed 6 courses (`pnpm db:seed:courses`); admin creates batch + assigns teacher.
+
+**Tests:** `apps/api/src/modules/courses/courses.phase2.test.ts` (+ Phase 1 auth suite) — `pnpm test:api`
 
 ### Phase 3 — Purchases & enrollment
 **Deliverable:** SSLCommerz checkout + Admin office enroll; enrollment awaiting batch

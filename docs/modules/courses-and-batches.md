@@ -1,6 +1,6 @@
 # Module: Courses, Batches & Curriculum
 
-**Status:** Clarified  
+**Status:** Clarified · Phase 2 implemented  
 
 ## Locked decisions
 

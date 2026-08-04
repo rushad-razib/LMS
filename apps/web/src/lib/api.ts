@@ -1,4 +1,13 @@
-import type { PublicUser, UserRole } from "@arva/shared";
+import type {
+  BatchStatus,
+  CourseStatus,
+  CreateBatchInput,
+  CreateCourseInput,
+  PublicUser,
+  UpdateBatchInput,
+  UpdateCourseInput,
+  UserRole,
+} from "@arva/shared";
 
 const API_BASE = "/api/v1";
 
@@ -13,6 +22,35 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 }
+
+export type Course = {
+  id: string;
+  title: string;
+  slug: string;
+  overview: string;
+  duration: string;
+  priceBdt: number;
+  outlineText: string | null;
+  faqText: string | null;
+  status: CourseStatus | string;
+  createdAt: string;
+  updatedAt: string;
+  batchCount?: number;
+  batches?: Batch[];
+};
+
+export type Batch = {
+  id: string;
+  courseId: string;
+  name: string;
+  scheduleSummary: string | null;
+  status: BatchStatus | string;
+  teacherId: string | null;
+  teacher: { id: string; fullName: string; email: string } | null;
+  course?: { id: string; title: string; slug: string };
+  createdAt: string;
+  updatedAt: string;
+};
 
 let accessToken: string | null = null;
 
@@ -122,4 +160,40 @@ export const api = {
       method: "POST",
       body,
     }),
+
+  listPublicCourses: () =>
+    request<{ courses: Course[] }>("/courses/public", { auth: false }),
+  getPublicCourse: (slug: string) =>
+    request<{ course: Course }>(`/courses/public/${slug}`, { auth: false }),
+
+  adminListCourses: () => request<{ courses: Course[] }>("/courses"),
+  adminGetCourse: (id: string) => request<{ course: Course }>(`/courses/${id}`),
+  adminCreateCourse: (body: CreateCourseInput) =>
+    request<{ course: Course }>("/courses", { method: "POST", body }),
+  adminUpdateCourse: (id: string, body: UpdateCourseInput) =>
+    request<{ course: Course }>(`/courses/${id}`, { method: "PATCH", body }),
+  adminDeleteCourse: (id: string) =>
+    request<{ ok: true }>(`/courses/${id}`, { method: "DELETE" }),
+
+  adminListBatches: (courseId?: string) =>
+    request<{ batches: Batch[] }>(
+      courseId
+        ? `/courses/batches?courseId=${encodeURIComponent(courseId)}`
+        : "/courses/batches",
+    ),
+  adminCreateBatch: (body: CreateBatchInput) =>
+    request<{ batch: Batch }>("/courses/batches", { method: "POST", body }),
+  adminUpdateBatch: (id: string, body: UpdateBatchInput) =>
+    request<{ batch: Batch }>(`/courses/batches/${id}`, { method: "PATCH", body }),
+  adminAssignBatchTeacher: (id: string, teacherId: string | null) =>
+    request<{ batch: Batch }>(`/courses/batches/${id}/teacher`, {
+      method: "PATCH",
+      body: { teacherId },
+    }),
+  adminDeleteBatch: (id: string) =>
+    request<{ ok: true }>(`/courses/batches/${id}`, { method: "DELETE" }),
+  adminListTeachers: () =>
+    request<{ teachers: { id: string; fullName: string; email: string }[] }>(
+      "/courses/teachers",
+    ),
 };

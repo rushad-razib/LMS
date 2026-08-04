@@ -26,6 +26,18 @@ enum AuthTokenType {
   REFRESH
 }
 
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum BatchStatus {
+  UPCOMING
+  ONGOING
+  CLOSED
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
@@ -39,6 +51,7 @@ model User {
 
   studentProfile StudentProfile?
   tokens         AuthToken[]
+  taughtBatches  Batch[]     @relation("BatchTeacher")
 }
 
 model StudentProfile {
@@ -71,4 +84,37 @@ model WebsiteSettings {
   id                        String   @id @default("default")
   emailVerificationRequired Boolean  @default(true)
   updatedAt                 DateTime @updatedAt
+}
+
+model Course {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  overview    String       @db.Text
+  duration    String
+  priceBdt    Int
+  outlineText String?      @db.Text
+  faqText     String?      @db.Text
+  status      CourseStatus @default(DRAFT)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  batches Batch[]
+}
+
+model Batch {
+  id              String      @id @default(cuid())
+  courseId        String
+  name            String
+  scheduleSummary String?     @db.Text
+  status          BatchStatus @default(UPCOMING)
+  teacherId       String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher User?  @relation("BatchTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+
+  @@index([courseId])
+  @@index([teacherId])
 }

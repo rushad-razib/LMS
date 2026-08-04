@@ -8,6 +8,7 @@ import type { Env } from "./config/env.js";
 import { errorHandler } from "./common/errors.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
+import { coursesRouter } from "./modules/courses/courses.routes.js";
 
 export function createApp(env: Env) {
   const app = express();
@@ -31,6 +32,7 @@ export function createApp(env: Env) {
 
   app.use(`${API_PREFIX}/health`, healthRouter);
   app.use(`${API_PREFIX}/auth`, authRouter);
+  app.use(`${API_PREFIX}/courses`, coursesRouter);
 
   app.use(errorHandler);
   return app;
