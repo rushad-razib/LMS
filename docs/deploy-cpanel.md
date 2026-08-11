@@ -33,7 +33,7 @@ ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\lms_deploy -N '""' -C "github-act
 
 Push to `main` (or Actions → Deploy → Run workflow).
 
-The job builds, rsyncs `./deploy/`, runs `npm install`, `prisma migrate deploy`, and `touch tmp/restart.txt`.
+The job builds, uploads via tar over SSH (cPanel often has no rsync), runs `npm install`, `prisma migrate deploy`, and `touch tmp/restart.txt`.
 
 ## 5. Seed admin (once, over SSH)
 

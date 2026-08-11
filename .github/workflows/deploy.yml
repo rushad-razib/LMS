@@ -68,7 +68,8 @@ jobs:
           PORT="${DEPLOY_PORT:-22}"
           ssh-keyscan -p "${PORT}" -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      - name: Rsync deploy tree
+      # cPanel shared hosts often lack rsync; tar+ssh works with only OpenSSH
+      - name: Upload deploy tree
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
           DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
@@ -77,12 +78,12 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${DEPLOY_PORT:-22}"
-          rsync -az --delete \
-            --exclude node_modules \
-            --exclude .env \
-            -e "ssh -i ~/.ssh/deploy_key -p ${PORT} -o IdentitiesOnly=yes" \
-            ./deploy/ \
-            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+          SSH_OPTS=(-i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes)
+          # Clear previous app files; keep .env and node_modules for faster reinstalls
+          ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "mkdir -p '${DEPLOY_PATH}' && cd '${DEPLOY_PATH}' && rm -rf apps packages package.json tmp && mkdir -p tmp"
+          tar -C ./deploy -czf - . | ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            "tar -xzf - -C '${DEPLOY_PATH}'"
 
       - name: Install, migrate, restart on server
         env:
