@@ -1,0 +1,130 @@
+# Deploy to cPanel (lms.rushadrazib.com) on push to main.
+#
+# Required GitHub repo secrets:
+#   DEPLOY_HOST     - SSH host (e.g. rushadrazib.com or server IP)
+#   DEPLOY_USER     - SSH user (e.g. rushadra)
+#   DEPLOY_SSH_KEY  - private key whose public half is in ~/.ssh/authorized_keys
+#   DEPLOY_PATH     - /home/rushadra/lms.rushadrazib.com
+#   DATABASE_URL    - same MySQL URL as cPanel (for prisma migrate on the server)
+#
+# Optional:
+#   DEPLOY_PORT              - SSH port (default 22)
+#   DEPLOY_NODE_ACTIVATE     - path to cPanel nodevenv activate script, e.g.
+#                              /home/rushadra/nodevenv/lms.rushadrazib.com/22/bin/activate
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+      - name: Prepare deploy tree
+        run: pnpm prepare-deploy
+
+      - name: Setup SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          test -n "${DEPLOY_SSH_KEY}"
+          test -n "${DEPLOY_HOST}"
+          mkdir -p ~/.ssh
+          echo "${DEPLOY_SSH_KEY}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          PORT="${DEPLOY_PORT:-22}"
+          ssh-keyscan -p "${PORT}" -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Rsync deploy tree
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          rsync -az --delete \
+            --exclude node_modules \
+            --exclude .env \
+            -e "ssh -i ~/.ssh/deploy_key -p ${PORT} -o IdentitiesOnly=yes" \
+            ./deploy/ \
+            "${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_PATH}/"
+
+      - name: Install, migrate, restart on server
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT }}
+          DEPLOY_NODE_ACTIVATE: ${{ secrets.DEPLOY_NODE_ACTIVATE }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          PORT="${DEPLOY_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes \
+            "${DEPLOY_USER}@${DEPLOY_HOST}" \
+            DEPLOY_PATH="${DEPLOY_PATH}" \
+            DEPLOY_NODE_ACTIVATE="${DEPLOY_NODE_ACTIVATE}" \
+            DATABASE_URL="${DATABASE_URL}" \
+            bash -s <<'REMOTE'
+          set -euo pipefail
+          cd "${DEPLOY_PATH}"
+
+          if [ -n "${DEPLOY_NODE_ACTIVATE:-}" ] && [ -f "${DEPLOY_NODE_ACTIVATE}" ]; then
+            # shellcheck disable=SC1090
+            source "${DEPLOY_NODE_ACTIVATE}"
+          elif [ -f "${HOME}/nodevenv/lms.rushadrazib.com/22/bin/activate" ]; then
+            # shellcheck disable=SC1090
+            source "${HOME}/nodevenv/lms.rushadrazib.com/22/bin/activate"
+          fi
+
+          if [ -z "${DATABASE_URL:-}" ] && [ -f .env ]; then
+            set -a
+            # shellcheck disable=SC1091
+            source .env
+            set +a
+          fi
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL is required (GitHub secret or ${DEPLOY_PATH}/.env)"
+            exit 1
+          fi
+
+          npm install --omit=dev
+          npx prisma generate --schema=apps/api/prisma/schema.prisma
+          npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+          mkdir -p tmp
+          touch tmp/restart.txt
+          echo "Deploy finished."
+          REMOTE

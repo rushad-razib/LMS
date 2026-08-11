@@ -341,3 +341,38 @@ export async function getMe(userId: string) {
   if (!user) throw new AppError(401, "Authentication required", "UNAUTHORIZED");
   return toPublicUser(user);
 }
+
+export type AdminUserListItem = {
+  id: string;
+  email: string;
+  fullName: string;
+  role: string;
+  status: string;
+  emailVerifiedAt: string | null;
+  createdAt: string;
+};
+
+export async function adminListUsers(): Promise<AdminUserListItem[]> {
+  const users = await prisma.user.findMany({
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      role: true,
+      status: true,
+      emailVerifiedAt: true,
+      createdAt: true,
+    },
+  });
+
+  return users.map((u) => ({
+    id: u.id,
+    email: u.email,
+    fullName: u.fullName,
+    role: u.role,
+    status: u.status,
+    emailVerifiedAt: u.emailVerifiedAt?.toISOString() ?? null,
+    createdAt: u.createdAt.toISOString(),
+  }));
+}

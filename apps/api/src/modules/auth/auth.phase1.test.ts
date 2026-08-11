@@ -237,6 +237,39 @@ describe("Phase 1 — Auth", () => {
     await cleanupTestUsers(`${PREFIX}.teacher`);
   });
 
+  it("lists users for admin and forbids students", async () => {
+    const adminEmail = process.env.ADMIN_EMAIL?.toLowerCase();
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (!adminEmail || !adminPassword) {
+      throw new Error("ADMIN_EMAIL and ADMIN_PASSWORD must be set in .env for this test");
+    }
+
+    const login = await api(app).post("/api/v1/auth/login").send({
+      email: adminEmail,
+      password: adminPassword,
+    });
+    expect(login.status).toBe(200);
+
+    const list = await api(app)
+      .get("/api/v1/auth/admin/users")
+      .set("Authorization", `Bearer ${login.body.accessToken}`);
+    expect(list.status).toBe(200);
+    expect(Array.isArray(list.body.users)).toBe(true);
+    expect(list.body.users.length).toBeGreaterThan(0);
+    expect(list.body.users[0]).not.toHaveProperty("passwordHash");
+
+    const studentEmail = uniqueEmail(PREFIX);
+    const student = await api(app).post("/api/v1/auth/register").send({
+      fullName: "List Forbidden",
+      email: studentEmail,
+      password: "Password#123",
+    });
+    const forbidden = await api(app)
+      .get("/api/v1/auth/admin/users")
+      .set("Authorization", `Bearer ${student.body.accessToken}`);
+    expect(forbidden.status).toBe(403);
+  });
+
   it("resets password with a valid token", async () => {
     const email = uniqueEmail(PREFIX);
     await api(app).post("/api/v1/auth/register").send({

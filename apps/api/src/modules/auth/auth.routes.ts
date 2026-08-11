@@ -191,6 +191,20 @@ authRouter.patch(
   },
 );
 
+authRouter.get(
+  "/admin/users",
+  requireAuth,
+  requireRoles("ADMIN"),
+  async (_req, res, next) => {
+    try {
+      const users = await authService.adminListUsers();
+      res.json({ users });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 authRouter.post(
   "/admin/users",
   requireAuth,

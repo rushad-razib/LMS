@@ -160,6 +160,18 @@ export const api = {
       method: "POST",
       body,
     }),
+  adminListUsers: () =>
+    request<{
+      users: {
+        id: string;
+        email: string;
+        fullName: string;
+        role: string;
+        status: string;
+        emailVerifiedAt: string | null;
+        createdAt: string;
+      }[];
+    }>("/auth/admin/users"),
 
   listPublicCourses: () =>
     request<{ courses: Course[] }>("/courses/public", { auth: false }),

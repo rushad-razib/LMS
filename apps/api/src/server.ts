@@ -12,6 +12,9 @@ import { createApp } from "./app.js";
 const env = loadEnv();
 const app = createApp(env);
 
-app.listen(env.API_PORT, () => {
-  console.log(`API listening on http://localhost:${env.API_PORT}`);
+// cPanel / Passenger injects PORT; local/dev uses API_PORT
+const port = Number(process.env.PORT) || env.API_PORT;
+
+app.listen(port, () => {
+  console.log(`API listening on http://localhost:${port}`);
 });

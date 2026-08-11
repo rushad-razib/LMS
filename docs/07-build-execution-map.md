@@ -88,6 +88,15 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 
 **Tests:** `apps/api/src/modules/courses/courses.phase2.test.ts` (+ Phase 1 auth suite) — `pnpm test:api`
 
+### Admin UX — DataTable + create modals
+**Status:** Complete  
+**Deliverable:** Admin index lists use shared `DataTable` + create `Modal` pattern (TanStack Table)
+
+- Shared: `Modal`, `DataTable`, `PageHeader` under `apps/web/src/components/`
+- Routes: `/admin/courses`, `/admin/courses/:id`, `/admin/batches`, `/admin/users`
+- `GET /auth/admin/users` for Users table; Settings remains a form page
+- Teacher portal reuses these components in Phase 5
+
 ### Phase 3 — Purchases & enrollment
 **Deliverable:** SSLCommerz checkout + Admin office enroll; enrollment awaiting batch
 
