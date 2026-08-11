@@ -131,6 +131,10 @@ jobs:
           fi
 
           npm install --omit=dev
+          # cPanel node_modules is a symlink into nodevenv; file: deps get a broken relative link
+          mkdir -p node_modules/@arva
+          rm -rf node_modules/@arva/shared
+          ln -sfn "${DEPLOY_PATH}/packages/shared" node_modules/@arva/shared
           npx prisma generate --schema=apps/api/prisma/schema.prisma
           npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
           mkdir -p tmp
