@@ -44,8 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # prisma generate (via api build) only needs a URL shape, not a live DB
       - name: Build
         run: pnpm build
+        env:
+          DATABASE_URL: mysql://ci:ci@localhost:3306/ci
 
       - name: Prepare deploy tree
         run: pnpm prepare-deploy
