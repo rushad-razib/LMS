@@ -106,11 +106,16 @@ jobs:
           cd "${DEPLOY_PATH}"
 
           if [ -n "${DEPLOY_NODE_ACTIVATE:-}" ] && [ -f "${DEPLOY_NODE_ACTIVATE}" ]; then
+            # cPanel activate scripts reference unset vars; nounset must be off while sourcing
+            set +u
             # shellcheck disable=SC1090
             source "${DEPLOY_NODE_ACTIVATE}"
+            set -u
           elif [ -f "${HOME}/nodevenv/lms.rushadrazib.com/22/bin/activate" ]; then
+            set +u
             # shellcheck disable=SC1090
             source "${HOME}/nodevenv/lms.rushadrazib.com/22/bin/activate"
+            set -u
           fi
 
           if [ -z "${DATABASE_URL:-}" ] && [ -f .env ]; then
