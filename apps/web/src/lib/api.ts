@@ -170,8 +170,15 @@ export const api = {
         status: string;
         emailVerifiedAt: string | null;
         createdAt: string;
+        taughtBatchCount: number;
+        taughtBatches: { id: string; name: string; courseTitle: string }[];
       }[];
     }>("/auth/admin/users"),
+  adminDeleteUser: (id: string, body?: { reassignTeacherId?: string | null }) =>
+    request<{ ok: true }>(`/auth/admin/users/${id}`, {
+      method: "DELETE",
+      body: body ?? {},
+    }),
 
   listPublicCourses: () =>
     request<{ courses: Course[] }>("/courses/public", { auth: false }),

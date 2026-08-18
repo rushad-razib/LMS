@@ -6,9 +6,10 @@ type ModalProps = {
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  showClose?: boolean;
 };
 
-export function Modal({ open, title, onClose, children, wide }: ModalProps) {
+export function Modal({ open, title, onClose, children, wide, showClose = true }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
@@ -46,13 +47,15 @@ export function Modal({ open, title, onClose, children, wide }: ModalProps) {
           <h2 id="modal-title" className="font-display text-lg font-semibold text-ink">
             {title}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-lg px-2 py-1 text-sm text-ink-muted hover:bg-surface hover:text-ink"
-          >
-            Close
-          </button>
+          {showClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg px-2 py-1 text-sm text-ink-muted hover:bg-surface hover:text-ink"
+            >
+              Close
+            </button>
+          ) : null}
         </div>
         {children}
       </div>

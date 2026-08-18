@@ -65,6 +65,14 @@ export const AdminCreateUserInputSchema = z.object({
 });
 export type AdminCreateUserInput = z.infer<typeof AdminCreateUserInputSchema>;
 
+export const AdminDeleteUserInputSchema = z.preprocess(
+  (val) => (val && typeof val === "object" ? val : {}),
+  z.object({
+    reassignTeacherId: z.string().min(1).optional().nullable(),
+  }),
+);
+export type AdminDeleteUserInput = z.infer<typeof AdminDeleteUserInputSchema>;
+
 export const UpdateSettingsInputSchema = z.object({
   emailVerificationRequired: z.boolean(),
 });

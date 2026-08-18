@@ -210,4 +210,69 @@ describe("Phase 2 — Courses & batches", () => {
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INVALID_TEACHER");
   });
+
+  it("updates course title and faqText", async () => {
+    const created = await api(app)
+      .post("/api/v1/courses")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        title: "Phase2 Edit Course",
+        slug: "phase2-edit-course",
+        overview: "Course used to test admin course update including FAQ.",
+        duration: "1 month",
+        priceBdt: 6000,
+        status: "DRAFT",
+      });
+    expect(created.status).toBe(201);
+    const id = created.body.course.id as string;
+
+    const res = await api(app)
+      .patch(`/api/v1/courses/${id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        title: "Phase2 Edit Course Updated",
+        faqText: "Q: Is this updated?\nA: Yes.",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.course.title).toBe("Phase2 Edit Course Updated");
+    expect(res.body.course.faqText).toContain("Is this updated?");
+  });
+
+  it("updates batch name and status", async () => {
+    const courseRes = await api(app)
+      .post("/api/v1/courses")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        title: "Phase2 Batch Edit Course",
+        slug: "phase2-batch-edit-course",
+        overview: "Course used to test admin batch update.",
+        duration: "1 month",
+        priceBdt: 5000,
+        status: "PUBLISHED",
+      });
+    const courseId = courseRes.body.course.id as string;
+
+    const batchRes = await api(app)
+      .post("/api/v1/courses/batches")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        courseId,
+        name: "Morning A",
+        status: "UPCOMING",
+      });
+    expect(batchRes.status).toBe(201);
+
+    const res = await api(app)
+      .patch(`/api/v1/courses/batches/${batchRes.body.batch.id}`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        name: "Morning A Revised",
+        status: "ONGOING",
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.batch.name).toBe("Morning A Revised");
+    expect(res.body.batch.status).toBe("ONGOING");
+  });
 });

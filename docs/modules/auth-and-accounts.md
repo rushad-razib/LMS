@@ -25,7 +25,11 @@ Public student registration; Admin-provisioned Teacher, Student, and Admin accou
 7. Admins may create additional users with role `ADMIN` (same permissions; no RBAC matrix in v1).  
 8. Password at registration for public signup; Admin-created students get verification (+ set-password as needed).  
 9. Password reset in v1.  
-10. JWT access + httpOnly refresh cookie.
+10. JWT access + httpOnly refresh cookie.  
+11. **Admin-only user delete** (`DELETE /auth/admin/users/:id`). Hard delete; email may be reused.  
+12. Admin **cannot delete their own** account (`403 CANNOT_DELETE_SELF`). Deleting other Admins is allowed.  
+13. Deleting a **Teacher** keeps batches. By default `teacherId` becomes `null`. Confirm lists batch names; admin may optionally reassign all those batches to another teacher in the same delete.  
+14. Deleting a **Student** now cascades profile + auth tokens. **Phase 3:** refuse delete (`409`) if the student has `Order` / `Enrollment` rows.
 
 ## Student access gate
 
@@ -51,3 +55,4 @@ Purchase/checkout from frontend should also require verified email when toggle i
 - [ ] Unverified student cannot open student portal when setting ON  
 - [ ] Setting OFF skips verification checks  
 - [ ] Resend verification available  
+- [ ] Admin can delete users except themselves; teacher delete lists batch names and can reassign  

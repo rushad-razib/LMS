@@ -31,3 +31,15 @@ body {
   background: var(--surface);
   color: var(--ink);
 }
+
+[data-sonner-toaster] {
+  --normal-bg: var(--surface-elevated);
+  --normal-border: var(--border);
+  --normal-text: var(--ink);
+  --success-bg: var(--surface-elevated);
+  --success-border: var(--border);
+  --success-text: var(--ink);
+  --error-bg: var(--surface-elevated);
+  --error-border: var(--border);
+  --error-text: var(--ink);
+}

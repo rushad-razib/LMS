@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api, type Course, ApiError } from "@/lib/api";
+import { toast } from "@/lib/toast";
 import { useAuth } from "@/features/auth/AuthProvider";
 
 export function CourseDetailPage() {
@@ -73,7 +74,7 @@ export function CourseDetailPage() {
           type="button"
           className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-fg"
           onClick={() => {
-            alert(
+            toast.message(
               "Checkout with SSLCommerz arrives in Phase 3. You can register/login now; purchase comes next.",
             );
           }}

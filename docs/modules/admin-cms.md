@@ -8,7 +8,7 @@ Admin **index** pages (courses, batches, users, and later orders/CMS) follow:
 
 1. `PageHeader` — title + primary **Create** action  
 2. `DataTable` (`@tanstack/react-table`) — search, sortable columns, row actions  
-3. `Modal` — create form only (edit-in-modal can follow later); on success close + refresh  
+3. `Modal` — create and edit forms; on success close + refresh  
 
 Shared components: `apps/web/src/components/{PageHeader,DataTable,Modal}.tsx`.  
 Settings stays a form page (not a list). Teacher portal reuses the same primitives in Phase 5.

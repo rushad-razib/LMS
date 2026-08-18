@@ -1,16 +1,20 @@
 import type { FormEvent } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { BatchStatus } from "@arva/shared";
 import { api, type Batch, type Course, ApiError } from "@/lib/api";
+import { toast } from "@/lib/toast";
+import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
+import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
 
 const batchStatuses: BatchStatus[] = ["UPCOMING", "ONGOING", "CLOSED"];
 
 export function AdminCourseBatchesPage() {
+  const confirm = useConfirm();
   const { courseId } = useParams();
   const [course, setCourse] = useState<Course | null>(null);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -18,6 +22,7 @@ export function AdminCourseBatchesPage() {
     [],
   );
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [scheduleSummary, setScheduleSummary] = useState("");
   const [teacherId, setTeacherId] = useState("");
@@ -42,30 +47,58 @@ export function AdminCourseBatchesPage() {
   }, [courseId]);
 
   function resetForm() {
+    setEditingId(null);
     setName("");
     setScheduleSummary("");
     setTeacherId("");
     setStatus("UPCOMING");
   }
 
-  async function onCreate(e: FormEvent) {
+  function openCreate() {
+    setError(null);
+    resetForm();
+    setModalOpen(true);
+  }
+
+  function openEdit(batch: Batch) {
+    setError(null);
+    setEditingId(batch.id);
+    setName(batch.name);
+    setScheduleSummary(batch.scheduleSummary ?? "");
+    setTeacherId(batch.teacherId ?? "");
+    setStatus((batch.status as BatchStatus) || "UPCOMING");
+    setModalOpen(true);
+  }
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!courseId) return;
     setError(null);
     setSaving(true);
     try {
-      await api.adminCreateBatch({
-        courseId,
-        name,
-        scheduleSummary: scheduleSummary || null,
-        status,
-        teacherId: teacherId || null,
-      });
+      if (editingId) {
+        await api.adminUpdateBatch(editingId, {
+          name,
+          scheduleSummary: scheduleSummary || null,
+          status,
+          teacherId: teacherId || null,
+        });
+        toast.success("Batch updated");
+      } else {
+        await api.adminCreateBatch({
+          courseId,
+          name,
+          scheduleSummary: scheduleSummary || null,
+          status,
+          teacherId: teacherId || null,
+        });
+        toast.success("Batch created");
+      }
       resetForm();
       setModalOpen(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Create failed");
+      setError(err instanceof ApiError ? err.message : editingId ? "Update failed" : "Create failed");
     } finally {
       setSaving(false);
     }
@@ -81,11 +114,21 @@ export function AdminCourseBatchesPage() {
     }
   }
 
-  async function remove(id: string) {
-    if (!confirm("Delete this batch?")) return;
-    await api.adminDeleteBatch(id);
-    await load();
-  }
+  const remove = useCallback(async (id: string) => {
+    const ok = await confirm({
+      title: "Delete batch",
+      message: "Delete this batch?",
+      confirmLabel: "Delete",
+    });
+    if (!ok) return;
+    try {
+      await api.adminDeleteBatch(id);
+      await load();
+      toast.success("Batch deleted");
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : "Delete failed");
+    }
+  }, [confirm, courseId]);
 
   const columns = useMemo<ColumnDef<Batch, unknown>[]>(
     () => [
@@ -126,17 +169,26 @@ export function AdminCourseBatchesPage() {
         header: "Actions",
         enableSorting: false,
         cell: ({ row }) => (
-          <button
-            type="button"
-            className="text-xs text-red-300"
-            onClick={() => remove(row.original.id)}
-          >
-            Delete
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
+              onClick={() => openEdit(row.original)}
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              className="rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:border-red-400 hover:bg-red-500/15 hover:text-red-200"
+              onClick={() => remove(row.original.id)}
+            >
+              Delete
+            </button>
+          </div>
         ),
       },
     ],
-    [teachers],
+    [teachers, remove],
   );
 
   if (!course) {
@@ -154,10 +206,7 @@ export function AdminCourseBatchesPage() {
             title={`${course.title} — batches`}
             description="One primary teacher per batch. Admin can assign/reassign."
             actionLabel="+ Create batch"
-            onAction={() => {
-              setError(null);
-              setModalOpen(true);
-            }}
+            onAction={openCreate}
           />
         </div>
       </div>
@@ -182,56 +231,64 @@ export function AdminCourseBatchesPage() {
 
       <Modal
         open={modalOpen}
-        title="Create batch"
+        title={editingId ? "Edit batch" : "Create batch"}
         onClose={() => {
           setModalOpen(false);
           resetForm();
         }}
       >
-        <form onSubmit={onCreate} className="grid gap-3">
-          <input
-            className="rounded-lg border border-border bg-surface px-3 py-2"
-            placeholder="Batch name (e.g. Evening A)"
-            value={name}
-            required
-            onChange={(e) => setName(e.target.value)}
-          />
-          <select
-            className="rounded-lg border border-border bg-surface px-3 py-2"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as BatchStatus)}
-          >
-            {batchStatuses.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <select
-            className="rounded-lg border border-border bg-surface px-3 py-2"
-            value={teacherId}
-            onChange={(e) => setTeacherId(e.target.value)}
-          >
-            <option value="">No teacher yet</option>
-            {teachers.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.fullName} ({t.email})
-              </option>
-            ))}
-          </select>
-          <textarea
-            className="rounded-lg border border-border bg-surface px-3 py-2"
-            placeholder="Schedule summary (optional)"
-            rows={2}
-            value={scheduleSummary}
-            onChange={(e) => setScheduleSummary(e.target.value)}
-          />
+        <form onSubmit={onSubmit} className="grid gap-3">
+          <Field label="Batch name">
+            <input
+              className="rounded-lg border border-border bg-surface px-3 py-2"
+              placeholder="e.g. Evening A"
+              value={name}
+              required
+              onChange={(e) => setName(e.target.value)}
+            />
+          </Field>
+          <Field label="Status">
+            <select
+              className="rounded-lg border border-border bg-surface px-3 py-2"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as BatchStatus)}
+            >
+              {batchStatuses.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Teacher">
+            <select
+              className="rounded-lg border border-border bg-surface px-3 py-2"
+              value={teacherId}
+              onChange={(e) => setTeacherId(e.target.value)}
+            >
+              <option value="">No teacher yet</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.fullName} ({t.email})
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Schedule summary">
+            <textarea
+              className="rounded-lg border border-border bg-surface px-3 py-2"
+              placeholder="Optional, e.g. Sun/Tue 7pm"
+              rows={2}
+              value={scheduleSummary}
+              onChange={(e) => setScheduleSummary(e.target.value)}
+            />
+          </Field>
           <button
             type="submit"
             disabled={saving}
             className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-accent-fg disabled:opacity-60"
           >
-            {saving ? "Creating…" : "Create batch"}
+            {saving ? "Saving…" : editingId ? "Save batch" : "Create batch"}
           </button>
         </form>
       </Modal>

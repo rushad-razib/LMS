@@ -350,6 +350,8 @@ export type AdminUserListItem = {
   status: string;
   emailVerifiedAt: string | null;
   createdAt: string;
+  taughtBatchCount: number;
+  taughtBatches: { id: string; name: string; courseTitle: string }[];
 };
 
 export async function adminListUsers(): Promise<AdminUserListItem[]> {
@@ -363,6 +365,14 @@ export async function adminListUsers(): Promise<AdminUserListItem[]> {
       status: true,
       emailVerifiedAt: true,
       createdAt: true,
+      taughtBatches: {
+        select: {
+          id: true,
+          name: true,
+          course: { select: { title: true } },
+        },
+        orderBy: { name: "asc" },
+      },
     },
   });
 
@@ -374,5 +384,54 @@ export async function adminListUsers(): Promise<AdminUserListItem[]> {
     status: u.status,
     emailVerifiedAt: u.emailVerifiedAt?.toISOString() ?? null,
     createdAt: u.createdAt.toISOString(),
+    taughtBatchCount: u.taughtBatches.length,
+    taughtBatches: u.taughtBatches.map((b) => ({
+      id: b.id,
+      name: b.name,
+      courseTitle: b.course.title,
+    })),
   }));
+}
+
+export async function adminDeleteUser(
+  actorId: string,
+  targetId: string,
+  reassignTeacherId?: string | null,
+) {
+  if (actorId === targetId) {
+    throw new AppError(403, "You cannot delete your own account", "CANNOT_DELETE_SELF");
+  }
+
+  const existing = await prisma.user.findUnique({ where: { id: targetId } });
+  if (!existing) {
+    throw new AppError(404, "User not found", "NOT_FOUND");
+  }
+
+  // TODO(Phase 3): if this is a STUDENT with Order/Enrollment rows, throw 409 ACCOUNT_HAS_ENROLLMENTS
+
+  if (reassignTeacherId) {
+    if (reassignTeacherId === targetId) {
+      throw new AppError(400, "Invalid teacher", "INVALID_TEACHER");
+    }
+    const replacement = await prisma.user.findUnique({ where: { id: reassignTeacherId } });
+    if (
+      !replacement ||
+      replacement.role !== "TEACHER" ||
+      replacement.status === "DISABLED"
+    ) {
+      throw new AppError(400, "Invalid teacher", "INVALID_TEACHER");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    if (reassignTeacherId) {
+      await tx.batch.updateMany({
+        where: { teacherId: targetId },
+        data: { teacherId: reassignTeacherId },
+      });
+    }
+    await tx.user.delete({ where: { id: targetId } });
+  });
+
+  return { ok: true as const };
 }

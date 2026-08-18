@@ -1,6 +1,8 @@
 import { Router } from "express";
+import type { Request } from "express";
 import {
   AdminCreateUserInputSchema,
+  AdminDeleteUserInputSchema,
   ForgotPasswordInputSchema,
   LoginInputSchema,
   RegisterInputSchema,
@@ -17,6 +19,11 @@ import * as authService from "./auth.service.js";
 import { getSettings, updateSettings } from "../settings/settings.service.js";
 
 export const authRouter = Router();
+
+function paramId(req: Request, name: string): string {
+  const value = req.params[name];
+  return Array.isArray(value) ? value[0]! : value!;
+}
 
 function setRefreshCookie(res: import("express").Response, token: string) {
   res.cookie("refreshToken", token, refreshCookieOptions());
@@ -214,6 +221,25 @@ authRouter.post(
     try {
       const user = await authService.adminCreateUser(req.body);
       res.status(201).json({ user });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+authRouter.delete(
+  "/admin/users/:id",
+  requireAuth,
+  requireRoles("ADMIN"),
+  validateBody(AdminDeleteUserInputSchema),
+  async (req, res, next) => {
+    try {
+      const result = await authService.adminDeleteUser(
+        req.user!.id,
+        paramId(req, "id"),
+        req.body.reassignTeacherId,
+      );
+      res.json(result);
     } catch (err) {
       next(err);
     }

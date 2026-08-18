@@ -103,6 +103,7 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 - Online order channel + IPN/idempotency  
 - Admin enroll with payment method note  
 - Assign/reassign student → batch + email  
+- When adding `Order` / `Enrollment`, **block admin student delete** with `409 ACCOUNT_HAS_ENROLLMENTS` if those rows exist (see [auth-and-accounts.md](modules/auth-and-accounts.md) locked decision 14)  
 
 **Checkpoint:** Test pay (sandbox) and admin enroll both create enrollments; batch assign emails.
 
