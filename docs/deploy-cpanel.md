@@ -33,7 +33,18 @@ ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\lms_deploy -N '""' -C "github-act
 
 Push to `main` (or Actions → Deploy → Run workflow).
 
-The job builds, uploads via tar over SSH (cPanel often has no rsync), runs `npm install`, `prisma migrate deploy`, and `touch tmp/restart.txt`.
+The job builds, uploads via one tar-over-SSH session (cPanel often has no rsync), runs `npm install`, `prisma migrate deploy`, and `touch tmp/restart.txt`. Remote commands use `bash --noprofile --norc` so login does not source `/etc/profile.d` (those scripts fork `grep` and can fail when NPROC is tight).
+
+### If upload fails with `fork: Resource temporarily unavailable`
+
+cPanel **NPROC** was full **during the job** (login or `npm`/`prisma` could not fork). Statistics is a live snapshot — check it while the workflow is running, not after.
+
+1. cPanel → Setup Node.js App → **Stop** the app (do not start extra Node copies).
+2. Kill leftover `npm` / `npx` / `prisma` / extra `node` (Process Manager or SSH `pkill`).
+3. Confirm Number Of Processes is well below the cap and RAM is not pinned at 2G.
+4. Run **one** Deploy. After `Deploy finished.`, Start App if it is still stopped, or rely on `tmp/restart.txt`.
+
+Skipping profile scripts does not reduce `npm install` / `prisma` process use. Free slots first if NPROC is still near 100.
 
 ## 5. Seed admin (once, over SSH)
 

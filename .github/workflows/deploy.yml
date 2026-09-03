@@ -68,7 +68,9 @@ jobs:
           PORT="${DEPLOY_PORT:-22}"
           ssh-keyscan -p "${PORT}" -H "${DEPLOY_HOST}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      # cPanel shared hosts often lack rsync; tar+ssh works with only OpenSSH
+      # cPanel shared hosts often lack rsync; tar+ssh works with only OpenSSH.
+      # One SSH session; bash --noprofile --norc skips /etc/profile.d (grepconf.sh)
+      # which can fail with fork: Resource temporarily unavailable when NPROC is tight.
       - name: Upload deploy tree
         env:
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -78,12 +80,10 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${DEPLOY_PORT:-22}"
-          SSH_OPTS=(-i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes)
+          SSH_OPTS=(-i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes -o RequestTTY=no)
           # Clear previous app files; keep .env and node_modules for faster reinstalls
-          ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "mkdir -p '${DEPLOY_PATH}' && cd '${DEPLOY_PATH}' && rm -rf apps packages package.json tmp && mkdir -p tmp"
           tar -C ./deploy -czf - . | ssh "${SSH_OPTS[@]}" "${DEPLOY_USER}@${DEPLOY_HOST}" \
-            "tar -xzf - -C '${DEPLOY_PATH}'"
+            "bash --noprofile --norc -c 'mkdir -p \"${DEPLOY_PATH}\" && cd \"${DEPLOY_PATH}\" && rm -rf apps packages package.json tmp && mkdir -p tmp && tar -xzf -'"
 
       - name: Install, migrate, restart on server
         env:
@@ -96,12 +96,12 @@ jobs:
         run: |
           set -euo pipefail
           PORT="${DEPLOY_PORT:-22}"
-          ssh -i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes \
+          ssh -i ~/.ssh/deploy_key -p "${PORT}" -o IdentitiesOnly=yes -o RequestTTY=no \
             "${DEPLOY_USER}@${DEPLOY_HOST}" \
             DEPLOY_PATH="${DEPLOY_PATH}" \
             DEPLOY_NODE_ACTIVATE="${DEPLOY_NODE_ACTIVATE}" \
             DATABASE_URL="${DATABASE_URL}" \
-            bash -s <<'REMOTE'
+            bash --noprofile --norc -s <<'REMOTE'
           set -euo pipefail
           cd "${DEPLOY_PATH}"
 
