@@ -28,6 +28,7 @@ ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\lms_deploy -N '""' -C "github-act
 - Startup file: `apps/api/dist/server.js`
 - Mode: Production
 - Env already set: `WEB_ORIGIN`, `DATABASE_URL`, JWTs
+- For Phase 3 payments also set: `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_IS_LIVE=false` (sandbox), and `API_ORIGIN=https://lms.rushadrazib.com` (same host is fine) so IPN/success callbacks resolve
 
 ## 4. Trigger deploy
 

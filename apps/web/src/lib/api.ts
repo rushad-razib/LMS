@@ -1,4 +1,5 @@
 import type {
+  AdminPaymentMethod,
   BatchStatus,
   CourseStatus,
   CreateBatchInput,
@@ -50,6 +51,54 @@ export type Batch = {
   course?: { id: string; title: string; slug: string };
   createdAt: string;
   updatedAt: string;
+};
+
+export type OrderRow = {
+  id: string;
+  userId: string;
+  courseId: string;
+  amountBdt: number;
+  channel: string;
+  status: string;
+  paymentMethod: string | null;
+  provider: string | null;
+  providerRef: string | null;
+  tranId: string;
+  createdAt: string;
+  updatedAt: string;
+  user: { id: string; fullName: string; email: string };
+  course: { id: string; title: string; slug: string };
+  enrollment: {
+    id: string;
+    batchId: string | null;
+    status: string;
+    batch: { id: string; name: string } | null;
+  } | null;
+};
+
+export type StudentOrderRow = Omit<OrderRow, "user"> & {
+  user?: OrderRow["user"];
+};
+
+export type EnrollmentRow = {
+  id: string;
+  userId: string;
+  courseId: string;
+  orderId: string | null;
+  batchId: string | null;
+  status: string;
+  createdAt: string;
+  user: { id: string; fullName: string; email: string };
+  course: { id: string; title: string; slug: string };
+  batch: { id: string; name: string } | null;
+  order: {
+    id: string;
+    amountBdt: number;
+    channel: string;
+    status: string;
+    paymentMethod: string | null;
+    tranId: string;
+  } | null;
 };
 
 let accessToken: string | null = null;
@@ -215,4 +264,122 @@ export const api = {
     request<{ teachers: { id: string; fullName: string; email: string }[] }>(
       "/courses/teachers",
     ),
+
+  checkout: (courseId: string) =>
+    request<{
+      kind: "enrolled" | "redirect";
+      gatewayUrl: string | null;
+      order: { id: string; tranId: string; status: string; amountBdt: number };
+      enrollment: EnrollmentRow | null;
+    }>("/purchases/checkout", { method: "POST", body: { courseId } }),
+  myOrders: () => request<{ orders: StudentOrderRow[] }>("/purchases/me"),
+  adminListOrders: () => request<{ orders: OrderRow[] }>("/purchases/admin/orders"),
+  adminListEnrollments: (unassignedOnly?: boolean) =>
+    request<{ enrollments: EnrollmentRow[] }>(
+      unassignedOnly
+        ? "/purchases/admin/enrollments?unassigned=1"
+        : "/purchases/admin/enrollments",
+    ),
+  adminEnroll: (body: {
+    studentId: string;
+    courseId: string;
+    paymentMethod: AdminPaymentMethod;
+    batchId?: string | null;
+  }) =>
+    request<{ order: OrderRow; enrollment: EnrollmentRow }>(
+      "/purchases/admin/enroll",
+      { method: "POST", body },
+    ),
+  adminAssignEnrollmentBatch: (id: string, batchId: string | null) =>
+    request<{ enrollment: EnrollmentRow }>(
+      `/purchases/admin/enrollments/${id}/batch`,
+      { method: "PATCH", body: { batchId } },
+    ),
+  adminDashboardCounts: () =>
+    request<{
+      students: number;
+      orders: number;
+      batches: number;
+      unassignedEnrollments: number;
+    }>("/purchases/admin/dashboard"),
+
+  myEnrollments: () =>
+    request<{ enrollments: StudentEnrollment[] }>("/students/enrollments"),
+  studentCourseHub: (slug: string) =>
+    request<{ enrollment: StudentEnrollment }>(`/students/courses/${slug}`),
+  studentCourseSessions: (slug: string) =>
+    request<{ sessions: StudentLiveSession[] }>(
+      `/students/courses/${slug}/sessions`,
+    ),
+  studentCourseMaterials: (slug: string) =>
+    request<{ materials: StudentMaterial[] }>(
+      `/students/courses/${slug}/materials`,
+    ),
+  studentCourseAnnouncements: (slug: string) =>
+    request<{ announcements: StudentAnnouncement[] }>(
+      `/students/courses/${slug}/announcements`,
+    ),
+  studentProfile: () => request<{ profile: StudentProfile }>("/students/profile"),
+  updateStudentProfile: (body: { phone?: string | null }) =>
+    request<{ profile: StudentProfile }>("/students/profile", {
+      method: "PATCH",
+      body,
+    }),
+};
+
+export type StudentEnrollment = {
+  id: string;
+  status: string;
+  batchId: string | null;
+  awaitingBatch: boolean;
+  createdAt: string;
+  course: {
+    id: string;
+    title: string;
+    slug: string;
+    overview: string;
+    duration: string;
+    priceBdt: number;
+  };
+  batch: {
+    id: string;
+    name: string;
+    scheduleSummary: string | null;
+    status: string;
+    teacher: { id: string; fullName: string } | null;
+  } | null;
+};
+
+export type StudentLiveSession = {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  meetingUrl: string;
+  notes: string | null;
+};
+
+export type StudentMaterial = {
+  id: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+  createdAt: string;
+};
+
+export type StudentAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+};
+
+export type StudentProfile = {
+  id: string;
+  email: string;
+  fullName: string;
+  phone: string | null;
+  emailVerifiedAt: string | null;
 };

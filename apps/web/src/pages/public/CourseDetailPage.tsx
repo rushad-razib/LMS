@@ -10,6 +10,7 @@ export function CourseDetailPage() {
   const [course, setCourse] = useState<Course | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [buying, setBuying] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -20,6 +21,52 @@ export function CourseDetailPage() {
       .catch((err) => setError(err instanceof ApiError ? err.message : "Not found"))
       .finally(() => setLoading(false));
   }, [slug]);
+
+  async function onBuy() {
+    if (!course) return;
+    if (!user) {
+      toast.message("Please log in or register before purchasing.");
+      return;
+    }
+    if (user.role !== "STUDENT") {
+      toast.message("Only student accounts can purchase courses.");
+      return;
+    }
+    if (!user.canAccessStudentPortal) {
+      toast.error("Verify your email before purchasing.");
+      return;
+    }
+
+    setBuying(true);
+    try {
+      const result = await api.checkout(course.id);
+      if (result.kind === "enrolled") {
+        toast.success("Enrolled — awaiting batch assignment.");
+        return;
+      }
+      if (result.gatewayUrl) {
+        window.location.href = result.gatewayUrl;
+        return;
+      }
+      toast.error("Payment gateway did not return a redirect URL.");
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.code === "ALREADY_ENROLLED") {
+          toast.message("You are already enrolled in this course.");
+        } else if (err.code === "EMAIL_NOT_VERIFIED") {
+          toast.error("Verify your email before purchasing.");
+        } else if (err.code === "PAYMENT_NOT_CONFIGURED") {
+          toast.error("Online payments are not configured yet.");
+        } else {
+          toast.error(err.message);
+        }
+      } else {
+        toast.error("Checkout failed");
+      }
+    } finally {
+      setBuying(false);
+    }
+  }
 
   if (loading) {
     return <div className="mx-auto max-w-3xl px-4 py-12 text-ink-muted">Loading…</div>;
@@ -72,14 +119,15 @@ export function CourseDetailPage() {
       <div className="mt-10 flex flex-wrap gap-3">
         <button
           type="button"
-          className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-fg"
-          onClick={() => {
-            toast.message(
-              "Checkout with SSLCommerz arrives in Phase 3. You can register/login now; purchase comes next.",
-            );
-          }}
+          disabled={buying}
+          className="rounded-lg bg-accent px-5 py-3 text-sm font-semibold text-accent-fg disabled:opacity-60"
+          onClick={() => void onBuy()}
         >
-          Buy / Enroll
+          {buying
+            ? "Please wait…"
+            : course.priceBdt === 0
+              ? "Enroll free"
+              : "Buy / Enroll"}
         </button>
         {!user ? (
           <Link
@@ -91,7 +139,7 @@ export function CourseDetailPage() {
         ) : null}
       </div>
       <p className="mt-3 text-xs text-ink-muted">
-        No batch selection at checkout — Admin assigns your batch after purchase (Phase 3).
+        No batch selection at checkout — Admin assigns your batch after purchase.
       </p>
     </div>
   );

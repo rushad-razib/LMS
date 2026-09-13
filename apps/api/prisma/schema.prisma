@@ -38,6 +38,30 @@ enum BatchStatus {
   CLOSED
 }
 
+enum OrderChannel {
+  ONLINE
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  CANCELLED
+}
+
+enum AdminPaymentMethod {
+  CASH
+  CARD
+  SSLCOMMERZ_OFFLINE
+  OTHER
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
@@ -52,6 +76,8 @@ model User {
   studentProfile StudentProfile?
   tokens         AuthToken[]
   taughtBatches  Batch[]     @relation("BatchTeacher")
+  orders         Order[]
+  enrollments    Enrollment[]
 }
 
 model StudentProfile {
@@ -99,7 +125,9 @@ model Course {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  batches Batch[]
+  batches     Batch[]
+  orders      Order[]
+  enrollments Enrollment[]
 }
 
 model Batch {
@@ -112,9 +140,103 @@ model Batch {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  teacher User?  @relation("BatchTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  course         Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher        User?               @relation("BatchTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  enrollments    Enrollment[]
+  liveSessions   LiveSession[]
+  materials      BatchMaterial[]
+  announcements  BatchAnnouncement[]
 
   @@index([courseId])
   @@index([teacherId])
+}
+
+model LiveSession {
+  id         String    @id @default(cuid())
+  batchId    String
+  title      String
+  startsAt   DateTime
+  endsAt     DateTime?
+  meetingUrl String    @db.Text
+  notes      String?   @db.Text
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+  @@index([startsAt])
+}
+
+model BatchMaterial {
+  id         String   @id @default(cuid())
+  batchId    String
+  title      String
+  fileName   String
+  mimeType   String
+  sizeBytes  Int
+  storageKey String
+  url        String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+}
+
+model BatchAnnouncement {
+  id        String   @id @default(cuid())
+  batchId   String
+  title     String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+
+  @@index([batchId])
+}
+
+model Order {
+  id            String              @id @default(cuid())
+  userId        String
+  courseId      String
+  amountBdt     Int
+  channel       OrderChannel
+  status        OrderStatus         @default(PENDING)
+  paymentMethod AdminPaymentMethod?
+  provider      String?
+  providerRef   String?
+  tranId        String              @unique
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user       User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course     Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  enrollment Enrollment?
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model Enrollment {
+  id        String           @id @default(cuid())
+  userId    String
+  courseId  String
+  orderId   String?          @unique
+  batchId   String?
+  status    EnrollmentStatus @default(ACTIVE)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  order  Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  batch  Batch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, courseId])
+  @@index([batchId])
+  @@index([status])
 }

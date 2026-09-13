@@ -13,12 +13,16 @@ Home · About · Courses · Trainers · Blog · Contact · Login · Register
 
 ## Student (`STUDENT`)
 
+Canonical routes: [modules/student-portal.md](modules/student-portal.md). Global notices (`/student/notices`) defer to Phase 6 Admin CMS.
+
 | Route | Page |
 |-------|------|
 | `/student` | Dashboard |
 | `/student/courses` | My Courses |
-| `/student/courses/:slug` | Batch hub (materials, announcements, live link) |
-| `/student/notices` | Notices |
+| `/student/courses/:slug` | Awaiting batch **or** cohort hub |
+| `/student/courses/:slug/sessions` | Live sessions |
+| `/student/courses/:slug/materials` | Batch materials |
+| `/student/courses/:slug/announcements` | Announcements |
 | `/student/orders` | Orders |
 | `/student/profile` | Profile |
 
@@ -38,8 +42,7 @@ Home · About · Courses · Trainers · Blog · Contact · Login · Register
 | Route | Page |
 |-------|------|
 | `/admin` | Dashboard |
-| `/admin/students` | Students |
-| `/admin/teachers` | Teachers |
+| `/admin/users` | Students / Teachers / Admins |
 | `/admin/orders` | Orders / enrollments + **batch assignment** |
 | `/admin/courses` | Courses |
 | `/admin/batches` | Batches (+ assign teachers) |

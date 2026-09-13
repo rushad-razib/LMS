@@ -1,6 +1,6 @@
 # Module: Student Portal
 
-**Status:** Clarified  
+**Status:** Clarified · Phase 4 implemented  
 
 ## Access
 
@@ -26,3 +26,11 @@
 - Unverified → verify-email wall  
 - Awaiting batch → empty cohort state  
 - Assigned → full batch content + session links  
+
+## Acceptance criteria
+
+- [x] My Courses lists enrollments with awaiting / assigned state  
+- [x] Cohort content gated until `batchId` set (`403 AWAITING_BATCH`)  
+- [x] Assigned student can read sessions, materials, announcements  
+- [x] Orders + profile pages available under student shell  
+

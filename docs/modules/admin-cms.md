@@ -4,7 +4,7 @@
 
 ## Admin list UX pattern
 
-Admin **index** pages (courses, batches, users, and later orders/CMS) follow:
+Admin **index** pages (courses, batches, users, orders, and later CMS) follow:
 
 1. `PageHeader` — title + primary **Create** action  
 2. `DataTable` (`@tanstack/react-table`) — search, sortable columns, row actions  

@@ -407,7 +407,19 @@ export async function adminDeleteUser(
     throw new AppError(404, "User not found", "NOT_FOUND");
   }
 
-  // TODO(Phase 3): if this is a STUDENT with Order/Enrollment rows, throw 409 ACCOUNT_HAS_ENROLLMENTS
+  if (existing.role === "STUDENT") {
+    const [orderCount, enrollmentCount] = await Promise.all([
+      prisma.order.count({ where: { userId: targetId } }),
+      prisma.enrollment.count({ where: { userId: targetId } }),
+    ]);
+    if (orderCount > 0 || enrollmentCount > 0) {
+      throw new AppError(
+        409,
+        "Cannot delete a student with orders or enrollments",
+        "ACCOUNT_HAS_ENROLLMENTS",
+      );
+    }
+  }
 
   if (reassignTeacherId) {
     if (reassignTeacherId === targetId) {

@@ -5,6 +5,7 @@ import { DashboardLayout } from "@/layouts/DashboardLayout";
 import { HomePage } from "@/pages/public/HomePage";
 import { CoursesPage } from "@/pages/public/CoursesPage";
 import { CourseDetailPage } from "@/pages/public/CourseDetailPage";
+import { CheckoutResultPage } from "@/pages/public/CheckoutResultPage";
 import { LoginPage } from "@/pages/public/LoginPage";
 import { RegisterPage } from "@/pages/public/RegisterPage";
 import { VerifyEmailPage } from "@/pages/public/VerifyEmailPage";
@@ -12,12 +13,23 @@ import { ForgotPasswordPage } from "@/pages/public/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/public/ResetPasswordPage";
 import { SetPasswordPage } from "@/pages/public/SetPasswordPage";
 import { StudentDashboardPage } from "@/pages/student/StudentDashboardPage";
+import { StudentCoursesPage } from "@/pages/student/StudentCoursesPage";
+import {
+  StudentCourseHubPage,
+  StudentCourseOverview,
+} from "@/pages/student/StudentCourseHubPage";
+import { StudentSessionsPage } from "@/pages/student/StudentSessionsPage";
+import { StudentMaterialsPage } from "@/pages/student/StudentMaterialsPage";
+import { StudentAnnouncementsPage } from "@/pages/student/StudentAnnouncementsPage";
+import { StudentOrdersPage } from "@/pages/student/StudentOrdersPage";
+import { StudentProfilePage } from "@/pages/student/StudentProfilePage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminSettingsPage } from "@/pages/admin/AdminSettingsPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 import { AdminCoursesPage } from "@/pages/admin/AdminCoursesPage";
 import { AdminCourseBatchesPage } from "@/pages/admin/AdminCourseBatchesPage";
 import { AdminBatchesPage } from "@/pages/admin/AdminBatchesPage";
+import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { TeacherDashboardPage } from "@/pages/teacher/TeacherDashboardPage";
 import { RequireAuth, RequireStudentVerified } from "@/features/auth/guards";
 
@@ -28,6 +40,15 @@ export function AppRouter() {
         <Route index element={<HomePage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/:slug" element={<CourseDetailPage />} />
+        <Route
+          path="checkout/success"
+          element={<CheckoutResultPage kind="success" />}
+        />
+        <Route path="checkout/fail" element={<CheckoutResultPage kind="fail" />} />
+        <Route
+          path="checkout/cancel"
+          element={<CheckoutResultPage kind="cancel" />}
+        />
         <Route path="login" element={<LoginPage />} />
         <Route path="register" element={<RegisterPage />} />
         <Route path="verify-email" element={<VerifyEmailPage />} />
@@ -39,6 +60,15 @@ export function AppRouter() {
       <Route element={<RequireStudentVerified />}>
         <Route path="student" element={<StudentLayout />}>
           <Route index element={<StudentDashboardPage />} />
+          <Route path="courses" element={<StudentCoursesPage />} />
+          <Route path="courses/:slug" element={<StudentCourseHubPage />}>
+            <Route index element={<StudentCourseOverview />} />
+            <Route path="sessions" element={<StudentSessionsPage />} />
+            <Route path="materials" element={<StudentMaterialsPage />} />
+            <Route path="announcements" element={<StudentAnnouncementsPage />} />
+          </Route>
+          <Route path="orders" element={<StudentOrdersPage />} />
+          <Route path="profile" element={<StudentProfilePage />} />
         </Route>
       </Route>
 
@@ -54,8 +84,8 @@ export function AppRouter() {
                 { to: "/admin/users", label: "Users" },
                 { to: "/admin/courses", label: "Courses" },
                 { to: "/admin/batches", label: "Batches" },
-                { to: "/admin/settings", label: "Settings" },
                 { to: "/admin/orders", label: "Orders" },
+                { to: "/admin/settings", label: "Settings" },
               ]}
             />
           }
@@ -66,6 +96,7 @@ export function AppRouter() {
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="courses/:courseId" element={<AdminCourseBatchesPage />} />
           <Route path="batches" element={<AdminBatchesPage />} />
+          <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="*" element={<Placeholder title="Coming in a later phase" />} />
         </Route>
       </Route>

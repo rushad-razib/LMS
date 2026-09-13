@@ -29,7 +29,7 @@ Public student registration; Admin-provisioned Teacher, Student, and Admin accou
 11. **Admin-only user delete** (`DELETE /auth/admin/users/:id`). Hard delete; email may be reused.  
 12. Admin **cannot delete their own** account (`403 CANNOT_DELETE_SELF`). Deleting other Admins is allowed.  
 13. Deleting a **Teacher** keeps batches. By default `teacherId` becomes `null`. Confirm lists batch names; admin may optionally reassign all those batches to another teacher in the same delete.  
-14. Deleting a **Student** now cascades profile + auth tokens. **Phase 3:** refuse delete (`409`) if the student has `Order` / `Enrollment` rows.
+14. Deleting a **Student** cascades profile + auth tokens when they have no commerce history. Refuse delete (`409 ACCOUNT_HAS_ENROLLMENTS`) if the student has `Order` / `Enrollment` rows.
 
 ## Student access gate
 
@@ -50,9 +50,11 @@ Purchase/checkout from frontend should also require verified email when toggle i
 
 ## Acceptance criteria
 
-- [ ] Register sends verification email when setting ON  
-- [ ] Admin create student sends verification email when setting ON  
-- [ ] Unverified student cannot open student portal when setting ON  
-- [ ] Setting OFF skips verification checks  
-- [ ] Resend verification available  
-- [ ] Admin can delete users except themselves; teacher delete lists batch names and can reassign  
+- [x] Register sends verification email when setting ON  
+- [x] Admin create student sends verification email when setting ON  
+- [x] Unverified student cannot open student portal when setting ON  
+- [x] Setting OFF skips verification checks  
+- [x] Resend verification available  
+- [x] Admin can delete users except themselves; teacher delete lists batch names and can reassign  
+- [x] Student delete refused with `409 ACCOUNT_HAS_ENROLLMENTS` when Order / Enrollment rows exist  
+

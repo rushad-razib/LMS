@@ -129,7 +129,13 @@ export function AdminUsersPage() {
       try {
         await deleteUser(row.id);
       } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : "Delete failed");
+        if (err instanceof ApiError && err.code === "ACCOUNT_HAS_ENROLLMENTS") {
+          toast.error(
+            "This student has orders or enrollments and cannot be deleted.",
+          );
+        } else {
+          toast.error(err instanceof ApiError ? err.message : "Delete failed");
+        }
       }
     },
     [confirm, deleteUser],

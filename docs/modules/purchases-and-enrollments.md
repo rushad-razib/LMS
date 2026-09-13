@@ -1,6 +1,6 @@
 # Module: Purchases & Enrollments
 
-**Status:** Clarified (Round 2 payment locked)  
+**Status:** Clarified (Round 2 payment locked) · Phase 3 implemented  
 **Depends on:** Auth, Courses/Batches, Notifications, SSLCommerz
 
 ## Two enrollment channels
@@ -51,7 +51,7 @@ Office:    Admin enrolls student (+ payment note) → Enrollment → Admin assig
 
 ## Acceptance criteria
 
-- [ ] Frontend paid path goes through SSLCommerz  
-- [ ] Admin can enroll without frontend payment  
-- [ ] Both paths produce enrollment awaiting batch  
-- [ ] Assignment/reassignment emails fire  
+- [x] Frontend paid path goes through SSLCommerz  
+- [x] Admin can enroll without frontend payment  
+- [x] Both paths produce enrollment awaiting batch  
+- [x] Assignment/reassignment emails fire  

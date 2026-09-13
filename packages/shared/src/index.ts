@@ -136,3 +136,43 @@ export type UpdateBatchInput = z.infer<typeof UpdateBatchInputSchema>;
 export const AssignBatchTeacherInputSchema = z.object({
   teacherId: z.string().min(1).nullable(),
 });
+
+export const AdminPaymentMethodSchema = z.enum([
+  "CASH",
+  "CARD",
+  "SSLCOMMERZ_OFFLINE",
+  "OTHER",
+]);
+export type AdminPaymentMethod = z.infer<typeof AdminPaymentMethodSchema>;
+
+export const OrderChannelSchema = z.enum(["ONLINE", "ADMIN"]);
+export type OrderChannel = z.infer<typeof OrderChannelSchema>;
+
+export const OrderStatusSchema = z.enum(["PENDING", "PAID", "FAILED", "CANCELLED"]);
+export type OrderStatus = z.infer<typeof OrderStatusSchema>;
+
+export const EnrollmentStatusSchema = z.enum(["ACTIVE", "CANCELLED"]);
+export type EnrollmentStatus = z.infer<typeof EnrollmentStatusSchema>;
+
+export const CheckoutInputSchema = z.object({
+  courseId: z.string().min(1),
+});
+export type CheckoutInput = z.infer<typeof CheckoutInputSchema>;
+
+export const AdminEnrollInputSchema = z.object({
+  studentId: z.string().min(1),
+  courseId: z.string().min(1),
+  paymentMethod: AdminPaymentMethodSchema,
+  batchId: z.string().min(1).optional().nullable(),
+});
+export type AdminEnrollInput = z.infer<typeof AdminEnrollInputSchema>;
+
+export const AssignEnrollmentBatchInputSchema = z.object({
+  batchId: z.string().min(1).nullable(),
+});
+export type AssignEnrollmentBatchInput = z.infer<typeof AssignEnrollmentBatchInputSchema>;
+
+export const UpdateStudentProfileInputSchema = z.object({
+  phone: z.string().trim().max(40).nullable().optional(),
+});
+export type UpdateStudentProfileInput = z.infer<typeof UpdateStudentProfileInputSchema>;

@@ -98,6 +98,7 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 - Teacher portal reuses these components in Phase 5
 
 ### Phase 3 — Purchases & enrollment
+**Status:** Complete  
 **Deliverable:** SSLCommerz checkout + Admin office enroll; enrollment awaiting batch
 
 - Online order channel + IPN/idempotency  
@@ -107,13 +108,21 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 
 **Checkpoint:** Test pay (sandbox) and admin enroll both create enrollments; batch assign emails.
 
+**Tests:** `apps/api/src/modules/purchases/purchases.phase3.test.ts` — `pnpm test:api`
+
 ### Phase 4 — Student portal
+**Status:** Complete  
 **Deliverable:** My Courses, awaiting-batch state, materials / announcements / live sessions (read)
 
 - Light `StudentLayout`  
 - Gating: no cohort content until `batchId` set  
+- Nested routes per [student-portal.md](modules/student-portal.md); `/student/notices` deferred to Phase 6  
 
 **Checkpoint:** Assigned student sees sessions + materials; unassigned does not.
+
+**Tests:** `apps/api/src/modules/students/students.phase4.test.ts` — `pnpm test:api`
+
+**Seed (optional demo content):** `pnpm --filter @arva/api db:seed:batch-content`
 
 ### Phase 5 — Teacher portal
 **Deliverable:** Dark dashboard; sessions CRUD; materials upload (S3+WebP); announcements + email
