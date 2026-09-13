@@ -1,6 +1,7 @@
 import type { UpdateStudentProfileInput } from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
 import { AppError } from "../../common/errors.js";
+import { resolveMaterialUrl } from "../media/media.service.js";
 
 async function getActiveEnrollmentBySlug(userId: string, slug: string) {
   const enrollment = await prisma.enrollment.findFirst({
@@ -132,15 +133,17 @@ export async function listCourseMaterials(userId: string, slug: string) {
     orderBy: { createdAt: "desc" },
   });
 
-  return materials.map((m) => ({
-    id: m.id,
-    title: m.title,
-    fileName: m.fileName,
-    mimeType: m.mimeType,
-    sizeBytes: m.sizeBytes,
-    url: m.url,
-    createdAt: m.createdAt.toISOString(),
-  }));
+  return Promise.all(
+    materials.map(async (m) => ({
+      id: m.id,
+      title: m.title,
+      fileName: m.fileName,
+      mimeType: m.mimeType,
+      sizeBytes: m.sizeBytes,
+      url: await resolveMaterialUrl(m),
+      createdAt: m.createdAt.toISOString(),
+    })),
+  );
 }
 
 export async function listCourseAnnouncements(userId: string, slug: string) {

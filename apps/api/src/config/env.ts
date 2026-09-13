@@ -24,6 +24,12 @@ const envSchema = z.object({
     .optional()
     .default("false")
     .transform((v) => v === "true" || v === "1"),
+  S3_ENDPOINT: z.string().optional().default(""),
+  S3_REGION: z.string().optional().default("auto"),
+  S3_BUCKET: z.string().optional().default(""),
+  S3_ACCESS_KEY_ID: z.string().optional().default(""),
+  S3_SECRET_ACCESS_KEY: z.string().optional().default(""),
+  S3_PUBLIC_URL: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

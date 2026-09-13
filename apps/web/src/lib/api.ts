@@ -118,7 +118,10 @@ type RequestOptions = Omit<RequestInit, "body"> & {
 
 async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
+  const isForm = typeof FormData !== "undefined" && options.body instanceof FormData;
+  if (!isForm) {
+    headers.set("Content-Type", "application/json");
+  }
   if (options.auth !== false && accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
@@ -127,7 +130,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     ...options,
     headers,
     credentials: "include",
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body:
+      options.body === undefined
+        ? undefined
+        : isForm
+          ? (options.body as FormData)
+          : JSON.stringify(options.body),
   });
 
   const data = await res.json().catch(() => ({}));
@@ -325,6 +333,78 @@ export const api = {
       method: "PATCH",
       body,
     }),
+
+  teacherBatches: () => request<{ batches: TeacherBatch[] }>("/teachers/batches"),
+  teacherBatchHub: (id: string) =>
+    request<{ batch: TeacherBatchHub }>(`/teachers/batches/${id}`),
+  teacherSessions: (batchId: string) =>
+    request<{ sessions: TeacherLiveSession[] }>(
+      `/teachers/batches/${batchId}/sessions`,
+    ),
+  teacherCreateSession: (batchId: string, body: TeacherSessionInput) =>
+    request<{ session: TeacherLiveSession }>(
+      `/teachers/batches/${batchId}/sessions`,
+      { method: "POST", body },
+    ),
+  teacherUpdateSession: (
+    batchId: string,
+    sessionId: string,
+    body: Partial<TeacherSessionInput>,
+  ) =>
+    request<{ session: TeacherLiveSession }>(
+      `/teachers/batches/${batchId}/sessions/${sessionId}`,
+      { method: "PATCH", body },
+    ),
+  teacherDeleteSession: (batchId: string, sessionId: string) =>
+    request<{ ok: true }>(`/teachers/batches/${batchId}/sessions/${sessionId}`, {
+      method: "DELETE",
+    }),
+  teacherMaterials: (batchId: string) =>
+    request<{ materials: TeacherMaterial[] }>(
+      `/teachers/batches/${batchId}/materials`,
+    ),
+  teacherUploadMaterial: (batchId: string, body: FormData) =>
+    request<{ material: TeacherMaterial }>(
+      `/teachers/batches/${batchId}/materials`,
+      { method: "POST", body },
+    ),
+  teacherDeleteMaterial: (batchId: string, materialId: string) =>
+    request<{ ok: true }>(
+      `/teachers/batches/${batchId}/materials/${materialId}`,
+      { method: "DELETE" },
+    ),
+  teacherAnnouncements: (batchId: string) =>
+    request<{ announcements: TeacherAnnouncement[] }>(
+      `/teachers/batches/${batchId}/announcements`,
+    ),
+  teacherCreateAnnouncement: (
+    batchId: string,
+    body: { title: string; body: string },
+  ) =>
+    request<{ announcement: TeacherAnnouncement }>(
+      `/teachers/batches/${batchId}/announcements`,
+      { method: "POST", body },
+    ),
+  teacherUpdateAnnouncement: (
+    batchId: string,
+    announcementId: string,
+    body: { title?: string; body?: string },
+  ) =>
+    request<{ announcement: TeacherAnnouncement }>(
+      `/teachers/batches/${batchId}/announcements/${announcementId}`,
+      { method: "PATCH", body },
+    ),
+  teacherDeleteAnnouncement: (batchId: string, announcementId: string) =>
+    request<{ ok: true }>(
+      `/teachers/batches/${batchId}/announcements/${announcementId}`,
+      { method: "DELETE" },
+    ),
+  teacherProfile: () => request<{ profile: TeacherProfile }>("/teachers/profile"),
+  updateTeacherProfile: (body: { fullName: string }) =>
+    request<{ profile: TeacherProfile }>("/teachers/profile", {
+      method: "PATCH",
+      body,
+    }),
 };
 
 export type StudentEnrollment = {
@@ -382,4 +462,74 @@ export type StudentProfile = {
   fullName: string;
   phone: string | null;
   emailVerifiedAt: string | null;
+};
+
+export type TeacherBatch = {
+  id: string;
+  name: string;
+  scheduleSummary: string | null;
+  status: string;
+  course: { id: string; title: string; slug: string };
+  studentCount: number;
+  sessionCount: number;
+  materialCount: number;
+  announcementCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeacherLiveSession = {
+  id: string;
+  title: string;
+  startsAt: string;
+  endsAt: string | null;
+  meetingUrl: string;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeacherAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeacherBatchHub = {
+  id: string;
+  name: string;
+  scheduleSummary: string | null;
+  status: string;
+  course: { id: string; title: string; slug: string };
+  studentCount: number;
+  upcomingSession: TeacherLiveSession | null;
+  latestAnnouncement: TeacherAnnouncement | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TeacherMaterial = {
+  id: string;
+  title: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+  createdAt: string;
+};
+
+export type TeacherSessionInput = {
+  title: string;
+  startsAt: string;
+  endsAt?: string | null;
+  meetingUrl: string;
+  notes?: string | null;
+};
+
+export type TeacherProfile = {
+  id: string;
+  email: string;
+  fullName: string;
 };

@@ -176,3 +176,43 @@ export const UpdateStudentProfileInputSchema = z.object({
   phone: z.string().trim().max(40).nullable().optional(),
 });
 export type UpdateStudentProfileInput = z.infer<typeof UpdateStudentProfileInputSchema>;
+
+export const UpdateTeacherProfileInputSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+});
+export type UpdateTeacherProfileInput = z.infer<typeof UpdateTeacherProfileInputSchema>;
+
+export const CreateLiveSessionInputSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  startsAt: z.string().trim().min(1),
+  endsAt: z.string().trim().min(1).optional().nullable(),
+  meetingUrl: z.string().trim().min(8).max(2000),
+  notes: z.string().trim().max(8000).optional().nullable(),
+});
+export type CreateLiveSessionInput = z.infer<typeof CreateLiveSessionInputSchema>;
+
+export const UpdateLiveSessionInputSchema = z.object({
+  title: z.string().trim().min(2).max(200).optional(),
+  startsAt: z.string().trim().min(1).optional(),
+  endsAt: z.string().trim().min(1).optional().nullable(),
+  meetingUrl: z.string().trim().min(8).max(2000).optional(),
+  notes: z.string().trim().max(8000).optional().nullable(),
+});
+export type UpdateLiveSessionInput = z.infer<typeof UpdateLiveSessionInputSchema>;
+
+export const CreateAnnouncementInputSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  body: z.string().trim().min(1).max(20_000),
+});
+export type CreateAnnouncementInput = z.infer<typeof CreateAnnouncementInputSchema>;
+
+export const UpdateAnnouncementInputSchema = z.object({
+  title: z.string().trim().min(2).max(200).optional(),
+  body: z.string().trim().min(1).max(20_000).optional(),
+});
+export type UpdateAnnouncementInput = z.infer<typeof UpdateAnnouncementInputSchema>;
+
+export const UploadMaterialMetaSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+});
+export type UploadMaterialMeta = z.infer<typeof UploadMaterialMetaSchema>;

@@ -31,6 +31,14 @@ import { AdminCourseBatchesPage } from "@/pages/admin/AdminCourseBatchesPage";
 import { AdminBatchesPage } from "@/pages/admin/AdminBatchesPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { TeacherDashboardPage } from "@/pages/teacher/TeacherDashboardPage";
+import {
+  TeacherBatchHubPage,
+  TeacherBatchOverview,
+} from "@/pages/teacher/TeacherBatchHubPage";
+import { TeacherSessionsPage } from "@/pages/teacher/TeacherSessionsPage";
+import { TeacherMaterialsPage } from "@/pages/teacher/TeacherMaterialsPage";
+import { TeacherAnnouncementsPage } from "@/pages/teacher/TeacherAnnouncementsPage";
+import { TeacherProfilePage } from "@/pages/teacher/TeacherProfilePage";
 import { RequireAuth, RequireStudentVerified } from "@/features/auth/guards";
 
 export function AppRouter() {
@@ -116,7 +124,14 @@ export function AppRouter() {
           }
         >
           <Route index element={<TeacherDashboardPage />} />
-          <Route path="*" element={<Placeholder title="Teacher module (Phase 5)" />} />
+          <Route path="batches/:id" element={<TeacherBatchHubPage />}>
+            <Route index element={<TeacherBatchOverview />} />
+            <Route path="sessions" element={<TeacherSessionsPage />} />
+            <Route path="materials" element={<TeacherMaterialsPage />} />
+            <Route path="announcements" element={<TeacherAnnouncementsPage />} />
+          </Route>
+          <Route path="profile" element={<TeacherProfilePage />} />
+          <Route path="*" element={<Placeholder title="Coming in a later phase" />} />
         </Route>
       </Route>
 

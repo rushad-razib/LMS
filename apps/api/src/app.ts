@@ -14,6 +14,8 @@ import { authRouter } from "./modules/auth/auth.routes.js";
 import { coursesRouter } from "./modules/courses/courses.routes.js";
 import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { studentsRouter } from "./modules/students/students.routes.js";
+import { teachersRouter } from "./modules/teachers/teachers.routes.js";
+import { mediaRouter } from "./modules/media/media.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -43,6 +45,8 @@ export function createApp(env: Env) {
   app.use(`${API_PREFIX}/courses`, coursesRouter);
   app.use(`${API_PREFIX}/purchases`, purchasesRouter);
   app.use(`${API_PREFIX}/students`, studentsRouter);
+  app.use(`${API_PREFIX}/teachers`, teachersRouter);
+  app.use(`${API_PREFIX}/media`, mediaRouter);
 
   app.use(API_PREFIX, (_req, res) => {
     res.status(404).json({

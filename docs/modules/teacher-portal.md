@@ -1,6 +1,6 @@
 # Module: Teacher Portal
 
-**Status:** Clarified  
+**Status:** Clarified · Phase 5 implemented  
 **Depends on:** Auth, Courses/Batches, Media, Notifications
 
 ## Purpose
@@ -35,7 +35,7 @@ Teacher does **not** assign students or create batches. One primary teacher per 
 
 ## Acceptance criteria
 
-- [ ] 403 on unassigned batches  
-- [ ] Session list ordered by `startsAt`  
-- [ ] Students see upcoming + past sessions with links  
-- [ ] Announcement triggers batch email  
+- [x] 403 on unassigned batches  
+- [x] Session list ordered by `startsAt`  
+- [x] Students see upcoming + past sessions with links  
+- [x] Announcement triggers batch email  

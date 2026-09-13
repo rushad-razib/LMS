@@ -1,6 +1,6 @@
 # Module: Media Uploads
 
-**Status:** Clarified (Round 3)
+**Status:** Clarified (Round 3) · Phase 5 upload pipeline implemented
 
 ## Storage
 
@@ -34,6 +34,8 @@ Documents (PDF, etc.) skip image conversion; store as-is with MIME allowlist.
 
 ## Acceptance criteria
 
-- [ ] png/jpg/jpeg stored as webp  
-- [ ] Size/MIME validation  
-- [ ] Single service used by all upload endpoints  
+- [x] png/jpg/jpeg stored as webp  
+- [x] Size/MIME validation  
+- [x] Single service used by all upload endpoints  
+
+Local/dev fallback: if `S3_BUCKET` (and keys) are empty, files are stored under `apps/api/uploads` and served via signed `/api/v1/media/download` links.  

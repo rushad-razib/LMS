@@ -125,12 +125,15 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 **Seed (optional demo content):** `pnpm --filter @arva/api db:seed:batch-content`
 
 ### Phase 5 — Teacher portal
+**Status:** Complete  
 **Deliverable:** Dark dashboard; sessions CRUD; materials upload (S3+WebP); announcements + email
 
 - Reuses `DashboardLayout`  
 - Scoped to assigned batches only  
 
 **Checkpoint:** Teacher posts session + announcement; students see + get email.
+
+**Tests:** `apps/api/src/modules/teachers/teachers.phase5.test.ts` — `pnpm test:api`
 
 ### Phase 6 — Admin CMS & contact
 **Deliverable:** Blog (rich text), gallery, notices, settings, contact leads, media service
