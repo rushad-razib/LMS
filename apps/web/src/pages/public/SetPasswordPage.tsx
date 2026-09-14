@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { PasswordField } from "@/components/PasswordField";
 import { api, ApiError } from "@/lib/api";
 
 export function SetPasswordPage() {
@@ -33,17 +34,13 @@ export function SetPasswordPage() {
         <p className="mt-4 text-sm text-red-600">Missing token.</p>
       ) : (
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
-          <label className="block text-sm">
-            <span className="mb-1 block font-medium">Password</span>
-            <input
-              type="password"
-              required
-              minLength={8}
-              className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 outline-none ring-accent focus:ring-2"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-          </label>
+          <PasswordField
+            label="Password"
+            value={password}
+            onValueChange={setPassword}
+            required
+            minLength={8}
+          />
           {error ? <p className="text-sm text-red-600">{error}</p> : null}
           {message ? <p className="text-sm text-green-700">{message}</p> : null}
           <button

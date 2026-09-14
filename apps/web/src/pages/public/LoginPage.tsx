@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { PasswordField } from "@/components/PasswordField";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { ApiError } from "@/lib/api";
 
@@ -44,14 +45,17 @@ export function LoginPage() {
       <h1 className="font-display text-3xl font-bold">Login</h1>
       <p className="mt-2 text-ink-muted">Sign in to your AR Visionary Academy account.</p>
       <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <Field label="Email" type="email" value={email} onChange={setEmail} required />
-        <Field
-          label="Password"
-          type="password"
-          value={password}
-          onChange={setPassword}
-          required
-        />
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-ink">Email</span>
+          <input
+            type="email"
+            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-ink outline-none ring-accent focus:ring-2"
+            value={email}
+            required
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <PasswordField label="Password" value={password} onValueChange={setPassword} required />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
           type="submit"
@@ -71,32 +75,5 @@ export function LoginPage() {
         </Link>
       </p>
     </div>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block text-sm">
-      <span className="mb-1 block font-medium text-ink">{label}</span>
-      <input
-        className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-ink outline-none ring-accent focus:ring-2"
-        type={type}
-        value={value}
-        required={required}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </label>
   );
 }

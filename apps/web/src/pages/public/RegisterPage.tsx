@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { PasswordField } from "@/components/PasswordField";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { ApiError } from "@/lib/api";
 
@@ -56,17 +57,13 @@ export function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Password</span>
-          <input
-            type="password"
-            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 outline-none ring-accent focus:ring-2"
-            value={password}
-            required
-            minLength={8}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </label>
+        <PasswordField
+          label="Password"
+          value={password}
+          onValueChange={setPassword}
+          required
+          minLength={8}
+        />
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
         <button
           type="submit"
