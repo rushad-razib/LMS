@@ -38,9 +38,11 @@ curl -sS -X POST "https://lms.rushadrazib.com/api/v1/internal/installment-remind
 
 ## 4. Trigger deploy
 
-Push to `main` (or Actions → Deploy → Run workflow).
+**Before deploy (especially after schema/migration changes):** cPanel → Setup Node.js App → **Stop** the app. A running app holds MySQL table locks and `prisma migrate deploy` can hang indefinitely after “N migrations found”.
 
-The job builds, uploads via one tar-over-SSH session (cPanel often has no rsync), runs `npm install`, `prisma migrate deploy`, and `touch tmp/restart.txt`. Remote commands use `bash --noprofile --norc` so login does not source `/etc/profile.d` (those scripts fork `grep` and can fail when NPROC is tight).
+Then push to `main` (or Actions → Deploy → Run workflow).
+
+The job builds, uploads via one tar-over-SSH session (cPanel often has no rsync), runs `npm install`, `prisma migrate deploy` (120s timeout), and `touch tmp/restart.txt`. After success, **Start** the app again (or rely on `tmp/restart.txt` if the app was already running). Remote commands use `bash --noprofile --norc` so login does not source `/etc/profile.d` (those scripts fork `grep` and can fail when NPROC is tight).
 
 ### If upload fails with `fork: Resource temporarily unavailable`
 

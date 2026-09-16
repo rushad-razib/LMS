@@ -135,8 +135,19 @@ jobs:
           mkdir -p node_modules/@arva
           rm -rf node_modules/@arva/shared
           ln -sfn "${DEPLOY_PATH}/packages/shared" node_modules/@arva/shared
+
+          echo "Running prisma generate…"
           npx prisma generate --schema=apps/api/prisma/schema.prisma
-          npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+
+          # Migrate can block forever on metadata locks if the Node app is still running.
+          # Stop the cPanel Node app before deploy when applying schema changes.
+          echo "Running prisma migrate deploy (120s timeout)…"
+          if command -v timeout >/dev/null 2>&1; then
+            timeout 120 npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+          else
+            npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+          fi
+
           mkdir -p tmp
           touch tmp/restart.txt
           echo "Deploy finished."
