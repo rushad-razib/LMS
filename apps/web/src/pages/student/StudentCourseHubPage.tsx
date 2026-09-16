@@ -39,6 +39,23 @@ export function StudentCourseHubPage() {
     );
   }
 
+  if (enrollment.accessBlocked) {
+    return (
+      <div className="rounded-xl border border-border bg-surface-elevated p-6">
+        <h1 className="font-display text-xl font-semibold">{enrollment.course.title}</h1>
+        <p className="mt-3 text-ink-muted">
+          Access to this course is currently blocked. Please contact the academy office.
+        </p>
+        <Link
+          to="/student/courses"
+          className="mt-4 inline-block text-sm text-accent hover:underline"
+        >
+          Back to My Courses
+        </Link>
+      </div>
+    );
+  }
+
   if (enrollment.awaitingBatch) {
     return <AwaitingBatchNotice courseTitle={enrollment.course.title} />;
   }

@@ -76,3 +76,41 @@ export async function sendBatchAssignedEmail(
     `<p>Hi ${fullName},</p><p>${intro}</p><p><a href="${link}">Open student portal</a></p>`,
   );
 }
+
+export async function sendInstallmentDueStudentEmail(
+  to: string,
+  fullName: string,
+  courseTitle: string,
+  amountBdt: number,
+  payByDate: string,
+) {
+  const env = loadEnv();
+  await sendMail(
+    to,
+    `${env.APP_NAME} — Installment due`,
+    `<p>Hi ${fullName},</p>
+     <p>Your installment of <strong>৳${amountBdt.toLocaleString("en-BD")}</strong> for <strong>${courseTitle}</strong> is due.</p>
+     <p>Please clear the due amount by <strong>${payByDate}</strong>.</p>
+     <p>Contact the academy office to make your payment.</p>`,
+  );
+}
+
+export async function sendInstallmentDueAdminEmail(
+  to: string,
+  adminName: string,
+  studentName: string,
+  studentEmail: string,
+  courseTitle: string,
+  amountBdt: number,
+  payByDate: string,
+) {
+  const env = loadEnv();
+  await sendMail(
+    to,
+    `${env.APP_NAME} — Student installment due`,
+    `<p>Hi ${adminName},</p>
+     <p><strong>${studentName}</strong> (${studentEmail}) has an installment due for <strong>${courseTitle}</strong>.</p>
+     <p>Amount: <strong>৳${amountBdt.toLocaleString("en-BD")}</strong></p>
+     <p>Pay by: <strong>${payByDate}</strong></p>`,
+  );
+}

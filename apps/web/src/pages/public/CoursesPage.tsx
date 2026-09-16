@@ -31,15 +31,24 @@ export function CoursesPage() {
           <Link
             key={course.id}
             to={`/courses/${course.slug}`}
-            className="rounded-xl border border-border bg-surface-elevated p-5 transition hover:border-accent"
+            className="overflow-hidden rounded-xl border border-border bg-surface-elevated transition hover:border-accent"
           >
-            <h2 className="font-display text-lg font-semibold text-ink">{course.title}</h2>
-            <p className="mt-2 line-clamp-3 text-sm text-ink-muted">{course.overview}</p>
-            <div className="mt-4 flex items-center justify-between text-sm">
-              <span className="text-ink-muted">{course.duration}</span>
-              <span className="font-semibold text-accent">
-                ৳{course.priceBdt.toLocaleString("en-BD")}
-              </span>
+            {course.coverImageUrl ? (
+              <img
+                src={course.coverImageUrl}
+                alt=""
+                className="h-40 w-full object-cover"
+              />
+            ) : null}
+            <div className="p-5">
+              <h2 className="font-display text-lg font-semibold text-ink">{course.title}</h2>
+              <p className="mt-2 line-clamp-3 text-sm text-ink-muted">{course.overview}</p>
+              <div className="mt-4 flex items-center justify-between text-sm">
+                <span className="text-ink-muted">{course.duration}</span>
+                <span className="font-semibold text-accent">
+                  ৳{course.priceBdt.toLocaleString("en-BD")}
+                </span>
+              </div>
             </div>
           </Link>
         ))}

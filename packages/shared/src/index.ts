@@ -95,6 +95,12 @@ export type CourseStatus = z.infer<typeof CourseStatusSchema>;
 export const BatchStatusSchema = z.enum(["UPCOMING", "ONGOING", "CLOSED"]);
 export type BatchStatus = z.infer<typeof BatchStatusSchema>;
 
+export const BatchDeliveryModeSchema = z.enum(["ONLINE", "OFFLINE"]);
+export type BatchDeliveryMode = z.infer<typeof BatchDeliveryModeSchema>;
+
+export const InstallmentMonthsSchema = z.union([z.literal(3), z.literal(6)]);
+export type InstallmentMonths = z.infer<typeof InstallmentMonthsSchema>;
+
 export const CreateCourseInputSchema = z.object({
   title: z.string().trim().min(2).max(200),
   slug: z
@@ -110,6 +116,8 @@ export const CreateCourseInputSchema = z.object({
   outlineText: z.string().trim().optional().nullable(),
   faqText: z.string().trim().optional().nullable(),
   status: CourseStatusSchema.optional(),
+  coverImageKey: z.string().min(1).optional().nullable(),
+  coverImageUrl: z.string().min(1).optional().nullable(),
 });
 export type CreateCourseInput = z.infer<typeof CreateCourseInputSchema>;
 
@@ -122,6 +130,10 @@ export const CreateBatchInputSchema = z.object({
   scheduleSummary: z.string().trim().optional().nullable(),
   status: BatchStatusSchema.optional(),
   teacherId: z.string().min(1).optional().nullable(),
+  deliveryMode: BatchDeliveryModeSchema.optional(),
+  seatCapacity: z.number().int().min(1).max(10_000).optional(),
+  startDate: z.string().min(1).optional().nullable(),
+  endDate: z.string().min(1).optional().nullable(),
 });
 export type CreateBatchInput = z.infer<typeof CreateBatchInputSchema>;
 
@@ -130,6 +142,10 @@ export const UpdateBatchInputSchema = z.object({
   scheduleSummary: z.string().trim().optional().nullable(),
   status: BatchStatusSchema.optional(),
   teacherId: z.string().min(1).optional().nullable(),
+  deliveryMode: BatchDeliveryModeSchema.optional(),
+  seatCapacity: z.number().int().min(1).max(10_000).optional(),
+  startDate: z.string().min(1).optional().nullable(),
+  endDate: z.string().min(1).optional().nullable(),
 });
 export type UpdateBatchInput = z.infer<typeof UpdateBatchInputSchema>;
 
@@ -159,11 +175,15 @@ export const CheckoutInputSchema = z.object({
 });
 export type CheckoutInput = z.infer<typeof CheckoutInputSchema>;
 
+export const AdminEnrollPaymentModeSchema = z.enum(["FULL", "INSTALLMENT_3", "INSTALLMENT_6"]);
+export type AdminEnrollPaymentMode = z.infer<typeof AdminEnrollPaymentModeSchema>;
+
 export const AdminEnrollInputSchema = z.object({
   studentId: z.string().min(1),
   courseId: z.string().min(1),
   paymentMethod: AdminPaymentMethodSchema,
   batchId: z.string().min(1).optional().nullable(),
+  paymentMode: AdminEnrollPaymentModeSchema.optional().default("FULL"),
 });
 export type AdminEnrollInput = z.infer<typeof AdminEnrollInputSchema>;
 
@@ -171,6 +191,16 @@ export const AssignEnrollmentBatchInputSchema = z.object({
   batchId: z.string().min(1).nullable(),
 });
 export type AssignEnrollmentBatchInput = z.infer<typeof AssignEnrollmentBatchInputSchema>;
+
+export const MarkInstallmentPaidInputSchema = z.object({
+  paymentMethod: AdminPaymentMethodSchema,
+});
+export type MarkInstallmentPaidInput = z.infer<typeof MarkInstallmentPaidInputSchema>;
+
+export const SetEnrollmentAccessInputSchema = z.object({
+  accessBlocked: z.boolean(),
+});
+export type SetEnrollmentAccessInput = z.infer<typeof SetEnrollmentAccessInputSchema>;
 
 export const UpdateStudentProfileInputSchema = z.object({
   phone: z.string().trim().max(40).nullable().optional(),

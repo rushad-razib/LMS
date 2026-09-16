@@ -43,9 +43,11 @@ Canonical routes: [modules/student-portal.md](modules/student-portal.md). Global
 |-------|------|
 | `/admin` | Dashboard |
 | `/admin/users` | Students / Teachers / Admins |
-| `/admin/orders` | Orders / enrollments + **batch assignment** |
-| `/admin/courses` | Courses |
-| `/admin/batches` | Batches (+ assign teachers) |
+| `/admin/students/:userId` | Student detail (enrollments, dues, access block) |
+| `/admin/orders` | Orders / enrollments + **batch assignment** + office enroll (full/installment) |
+| `/admin/courses` | Courses (+ cover image) |
+| `/admin/batches` | Batches (+ mode, seats, dates, teachers) |
+| `/admin/batches/:id` | Batch overview (seats filled, roster) |
 | `/admin/trainers` | Marketing trainer profiles |
 | `/admin/notices` | Global notices |
 | `/admin/gallery` | Gallery |

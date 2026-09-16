@@ -1,10 +1,18 @@
 import { randomBytes } from "node:crypto";
-import type { AdminEnrollInput, AssignEnrollmentBatchInput, CheckoutInput } from "@arva/shared";
+import type {
+  AdminEnrollInput,
+  AdminPaymentMethod,
+  AssignEnrollmentBatchInput,
+  CheckoutInput,
+  MarkInstallmentPaidInput,
+  SetEnrollmentAccessInput,
+} from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
 import { AppError } from "../../common/errors.js";
 import { loadEnv } from "../../config/env.js";
 import { getSettings } from "../settings/settings.service.js";
 import { studentCanAccessPortal } from "../auth/access.js";
+import { assertBatchHasSeat } from "../courses/courses.service.js";
 import {
   initSslcommerzSession,
   isSslcommerzConfigured,
@@ -13,8 +21,16 @@ import {
 import {
   sendAdminEnrolledEmail,
   sendBatchAssignedEmail,
+  sendInstallmentDueAdminEmail,
+  sendInstallmentDueStudentEmail,
   sendOrderPaidEmail,
 } from "./purchases.email.js";
+import {
+  addCalendarDays,
+  firstOfMonthAhead,
+  splitInstallmentAmounts,
+  startOfUtcDay,
+} from "./installments.util.js";
 
 function publicApiOrigin() {
   const env = loadEnv();
@@ -339,14 +355,34 @@ export async function adminEnroll(input: AdminEnrollInput) {
     if (!batch || batch.courseId !== course.id) {
       throw new AppError(400, "Batch does not belong to this course", "INVALID_BATCH");
     }
+    await assertBatchHasSeat(batchId);
   }
+
+  const paymentMode = input.paymentMode ?? "FULL";
+  const installmentMonths =
+    paymentMode === "INSTALLMENT_3" ? 3 : paymentMode === "INSTALLMENT_6" ? 6 : null;
+
+  if (installmentMonths && course.priceBdt <= 0) {
+    throw new AppError(
+      400,
+      "Installments require a paid course",
+      "INSTALLMENT_NOT_ALLOWED",
+    );
+  }
+
+  const graceDays = 10;
+  const now = new Date();
+  const amounts = installmentMonths
+    ? splitInstallmentAmounts(course.priceBdt, installmentMonths)
+    : [course.priceBdt];
+  const firstAmount = amounts[0]!;
 
   const result = await prisma.$transaction(async (tx) => {
     const order = await tx.order.create({
       data: {
         userId: student.id,
         courseId: course.id,
-        amountBdt: course.priceBdt,
+        amountBdt: firstAmount,
         channel: "ADMIN",
         status: "PAID",
         paymentMethod: input.paymentMethod,
@@ -364,11 +400,13 @@ export async function adminEnroll(input: AdminEnrollInput) {
         orderId: order.id,
         batchId,
         status: "ACTIVE",
+        accessBlocked: false,
       },
       update: {
         orderId: order.id,
         status: "ACTIVE",
         batchId,
+        accessBlocked: false,
       },
       include: {
         course: { select: { id: true, title: true, slug: true } },
@@ -377,7 +415,51 @@ export async function adminEnroll(input: AdminEnrollInput) {
         order: true,
       },
     });
-    return { order, enrollment };
+
+    let plan = null;
+    if (installmentMonths) {
+      plan = await tx.installmentPlan.create({
+        data: {
+          enrollmentId: enrollment.id,
+          userId: student.id,
+          courseId: course.id,
+          totalBdt: course.priceBdt,
+          months: installmentMonths,
+          graceDays,
+          status: "ACTIVE",
+          installments: {
+            create: amounts.map((amountBdt, index) => {
+              const sequence = index + 1;
+              if (sequence === 1) {
+                const due = startOfUtcDay(now);
+                return {
+                  sequence,
+                  amountBdt,
+                  dueDate: due,
+                  payByDate: due,
+                  status: "PAID" as const,
+                  paidAt: now,
+                  paymentMethod: input.paymentMethod,
+                  orderId: order.id,
+                };
+              }
+              const dueDate = firstOfMonthAhead(now, sequence - 1);
+              const payByDate = addCalendarDays(dueDate, graceDays - 1);
+              return {
+                sequence,
+                amountBdt,
+                dueDate,
+                payByDate,
+                status: "DUE" as const,
+              };
+            }),
+          },
+        },
+        include: { installments: { orderBy: { sequence: "asc" } } },
+      });
+    }
+
+    return { order, enrollment, plan };
   });
 
   try {
@@ -422,6 +504,9 @@ export async function assignEnrollmentBatch(
     if (!batch || batch.courseId !== enrollment.courseId) {
       throw new AppError(400, "Batch does not belong to this course", "INVALID_BATCH");
     }
+    if (input.batchId !== previousBatchId) {
+      await assertBatchHasSeat(input.batchId, enrollmentId);
+    }
     batchName = batch.name;
   }
 
@@ -451,6 +536,261 @@ export async function assignEnrollmentBatch(
   }
 
   return updated;
+}
+
+export async function markInstallmentPaid(
+  installmentId: string,
+  input: MarkInstallmentPaidInput,
+) {
+  await refreshOverdueInstallments();
+
+  const installment = await prisma.installment.findUnique({
+    where: { id: installmentId },
+    include: {
+      plan: {
+        include: {
+          user: true,
+          course: true,
+          enrollment: true,
+        },
+      },
+    },
+  });
+  if (!installment) {
+    throw new AppError(404, "Installment not found", "NOT_FOUND");
+  }
+  if (installment.status === "PAID") {
+    throw new AppError(409, "Installment already paid", "ALREADY_PAID");
+  }
+
+  const now = new Date();
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.create({
+      data: {
+        userId: installment.plan.userId,
+        courseId: installment.plan.courseId,
+        amountBdt: installment.amountBdt,
+        channel: "ADMIN",
+        status: "PAID",
+        paymentMethod: input.paymentMethod,
+        provider: "ADMIN",
+        tranId: newTranId(),
+      },
+    });
+
+    const updated = await tx.installment.update({
+      where: { id: installment.id },
+      data: {
+        status: "PAID",
+        paidAt: now,
+        paymentMethod: input.paymentMethod,
+        orderId: order.id,
+      },
+    });
+
+    const remaining = await tx.installment.count({
+      where: {
+        planId: installment.planId,
+        status: { not: "PAID" },
+      },
+    });
+
+    if (remaining === 0) {
+      await tx.installmentPlan.update({
+        where: { id: installment.planId },
+        data: { status: "COMPLETED" },
+      });
+    }
+
+    return { order, installment: updated };
+  });
+
+  return result;
+}
+
+export async function setEnrollmentAccess(
+  enrollmentId: string,
+  input: SetEnrollmentAccessInput,
+) {
+  const enrollment = await prisma.enrollment.findUnique({ where: { id: enrollmentId } });
+  if (!enrollment || enrollment.status !== "ACTIVE") {
+    throw new AppError(404, "Enrollment not found", "NOT_FOUND");
+  }
+  return prisma.enrollment.update({
+    where: { id: enrollmentId },
+    data: { accessBlocked: input.accessBlocked },
+    include: {
+      course: { select: { id: true, title: true, slug: true } },
+      batch: { select: { id: true, name: true } },
+      user: { select: { id: true, fullName: true, email: true } },
+      order: true,
+      installmentPlan: {
+        include: { installments: { orderBy: { sequence: "asc" } } },
+      },
+    },
+  });
+}
+
+export async function refreshOverdueInstallments(now = new Date()) {
+  await prisma.installment.updateMany({
+    where: {
+      status: "DUE",
+      payByDate: { lt: startOfUtcDay(now) },
+    },
+    data: { status: "OVERDUE" },
+  });
+}
+
+function serializeInstallment(inst: {
+  id: string;
+  sequence: number;
+  amountBdt: number;
+  dueDate: Date;
+  payByDate: Date;
+  status: string;
+  paidAt: Date | null;
+  paymentMethod: AdminPaymentMethod | null;
+  orderId: string | null;
+}) {
+  return {
+    id: inst.id,
+    sequence: inst.sequence,
+    amountBdt: inst.amountBdt,
+    dueDate: inst.dueDate.toISOString(),
+    payByDate: inst.payByDate.toISOString(),
+    status: inst.status,
+    paidAt: inst.paidAt?.toISOString() ?? null,
+    paymentMethod: inst.paymentMethod,
+    orderId: inst.orderId,
+  };
+}
+
+export async function getAdminStudentDetail(userId: string) {
+  await refreshOverdueInstallments();
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { studentProfile: true },
+  });
+  if (!user || user.role !== "STUDENT") {
+    throw new AppError(404, "Student not found", "NOT_FOUND");
+  }
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId, status: "ACTIVE" },
+    orderBy: { createdAt: "desc" },
+    include: {
+      course: { select: { id: true, title: true, slug: true, priceBdt: true } },
+      batch: { select: { id: true, name: true } },
+      installmentPlan: {
+        include: { installments: { orderBy: { sequence: "asc" } } },
+      },
+      order: true,
+    },
+  });
+
+  return {
+    student: {
+      id: user.id,
+      fullName: user.fullName,
+      email: user.email,
+      status: user.status,
+      phone: user.studentProfile?.phone ?? null,
+      emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
+      createdAt: user.createdAt.toISOString(),
+    },
+    enrollments: enrollments.map((e) => {
+      const plan = e.installmentPlan;
+      const installments = plan?.installments ?? [];
+      const paidBdt = installments
+        .filter((i) => i.status === "PAID")
+        .reduce((sum, i) => sum + i.amountBdt, 0);
+      const totalBdt = plan?.totalBdt ?? e.order?.amountBdt ?? e.course.priceBdt;
+      const dueBdt = totalBdt - paidBdt;
+      return {
+        id: e.id,
+        createdAt: e.createdAt.toISOString(),
+        accessBlocked: e.accessBlocked,
+        batch: e.batch,
+        course: e.course,
+        totalBdt,
+        dueBdt,
+        paidBdt,
+        paymentMode: plan ? (`INSTALLMENT_${plan.months}` as const) : ("FULL" as const),
+        plan: plan
+          ? {
+              id: plan.id,
+              months: plan.months,
+              status: plan.status,
+              graceDays: plan.graceDays,
+              installments: installments.map(serializeInstallment),
+            }
+          : null,
+      };
+    }),
+  };
+}
+
+export async function sendInstallmentDueReminders(now = new Date()) {
+  await refreshOverdueInstallments(now);
+
+  const today = startOfUtcDay(now);
+  const tomorrow = addCalendarDays(today, 1);
+
+  // Only fire student/admin due emails on the 1st (due date day)
+  if (today.getUTCDate() !== 1) {
+    return { sent: 0, skipped: true as const };
+  }
+
+  const dueInstallments = await prisma.installment.findMany({
+    where: {
+      status: { in: ["DUE", "OVERDUE"] },
+      dueDate: { gte: today, lt: tomorrow },
+    },
+    include: {
+      plan: {
+        include: {
+          user: true,
+          course: true,
+        },
+      },
+    },
+  });
+
+  const admins = await prisma.user.findMany({
+    where: { role: "ADMIN", status: { not: "DISABLED" } },
+    select: { email: true, fullName: true },
+  });
+
+  let sent = 0;
+  for (const inst of dueInstallments) {
+    const payBy = inst.payByDate.toISOString().slice(0, 10);
+    try {
+      await sendInstallmentDueStudentEmail(
+        inst.plan.user.email,
+        inst.plan.user.fullName,
+        inst.plan.course.title,
+        inst.amountBdt,
+        payBy,
+      );
+      for (const admin of admins) {
+        await sendInstallmentDueAdminEmail(
+          admin.email,
+          admin.fullName,
+          inst.plan.user.fullName,
+          inst.plan.user.email,
+          inst.plan.course.title,
+          inst.amountBdt,
+          payBy,
+        );
+      }
+      sent += 1;
+    } catch (err) {
+      console.error("installment reminder failed", inst.id, err);
+    }
+  }
+
+  return { sent, skipped: false as const };
 }
 
 export async function adminListOrders() {

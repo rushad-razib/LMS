@@ -42,6 +42,13 @@ async function getActiveEnrollmentBySlug(userId: string, slug: string) {
 
 async function requireAssignedBatch(userId: string, slug: string) {
   const enrollment = await getActiveEnrollmentBySlug(userId, slug);
+  if (enrollment.accessBlocked) {
+    throw new AppError(
+      403,
+      "Access to this course is currently blocked. Contact the academy office.",
+      "ACCESS_BLOCKED",
+    );
+  }
   if (!enrollment.batchId || !enrollment.batch) {
     throw new AppError(
       403,
@@ -59,7 +66,8 @@ function serializeEnrollment(
     id: enrollment.id,
     status: enrollment.status,
     batchId: enrollment.batchId,
-    awaitingBatch: !enrollment.batchId,
+    accessBlocked: enrollment.accessBlocked,
+    awaitingBatch: !enrollment.batchId && !enrollment.accessBlocked,
     createdAt: enrollment.createdAt.toISOString(),
     course: enrollment.course,
     batch: enrollment.batch

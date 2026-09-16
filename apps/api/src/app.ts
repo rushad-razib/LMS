@@ -16,6 +16,7 @@ import { purchasesRouter } from "./modules/purchases/purchases.routes.js";
 import { studentsRouter } from "./modules/students/students.routes.js";
 import { teachersRouter } from "./modules/teachers/teachers.routes.js";
 import { mediaRouter } from "./modules/media/media.routes.js";
+import { internalRouter } from "./modules/internal/internal.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,6 +48,7 @@ export function createApp(env: Env) {
   app.use(`${API_PREFIX}/students`, studentsRouter);
   app.use(`${API_PREFIX}/teachers`, teachersRouter);
   app.use(`${API_PREFIX}/media`, mediaRouter);
+  app.use(`${API_PREFIX}/internal`, internalRouter);
 
   app.use(API_PREFIX, (_req, res) => {
     res.status(404).json({

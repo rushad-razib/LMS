@@ -1,7 +1,8 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { AdminPaymentMethod } from "@arva/shared";
+import type { AdminEnrollPaymentMode, AdminPaymentMethod } from "@arva/shared";
 import {
   api,
   ApiError,
@@ -38,6 +39,8 @@ export function AdminOrdersPage() {
   const [courseId, setCourseId] = useState("");
   const [paymentMethod, setPaymentMethod] =
     useState<AdminPaymentMethod>("CASH");
+  const [paymentMode, setPaymentMode] =
+    useState<AdminEnrollPaymentMode>("FULL");
   const [batchId, setBatchId] = useState("");
   const [assignBatchId, setAssignBatchId] = useState("");
   const [saving, setSaving] = useState(false);
@@ -81,6 +84,7 @@ export function AdminOrdersPage() {
       setStudentId("");
       setCourseId("");
       setPaymentMethod("CASH");
+      setPaymentMode("FULL");
       setBatchId("");
       setEnrollOpen(true);
     } catch (err) {
@@ -120,6 +124,7 @@ export function AdminOrdersPage() {
         courseId,
         paymentMethod,
         batchId: batchId || null,
+        paymentMode,
       });
       setEnrollOpen(false);
       await load();
@@ -165,7 +170,12 @@ export function AdminOrdersPage() {
         accessorFn: (r) => r.user.fullName,
         cell: ({ row }) => (
           <div>
-            <div>{row.original.user.fullName}</div>
+            <Link
+              to={`/admin/students/${row.original.user.id}`}
+              className="font-medium text-accent hover:underline"
+            >
+              {row.original.user.fullName}
+            </Link>
             <div className="text-xs text-ink-muted">{row.original.user.email}</div>
           </div>
         ),
@@ -206,7 +216,12 @@ export function AdminOrdersPage() {
         accessorFn: (r) => r.user.fullName,
         cell: ({ row }) => (
           <div>
-            <div>{row.original.user.fullName}</div>
+            <Link
+              to={`/admin/students/${row.original.user.id}`}
+              className="text-accent hover:underline"
+            >
+              {row.original.user.fullName}
+            </Link>
             <div className="text-xs text-ink-muted">{row.original.user.email}</div>
           </div>
         ),
@@ -311,6 +326,19 @@ export function AdminOrdersPage() {
               ))}
             </select>
           </Field>
+          <Field label="Payment mode">
+            <select
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              value={paymentMode}
+              onChange={(e) =>
+                setPaymentMode(e.target.value as AdminEnrollPaymentMode)
+              }
+            >
+              <option value="FULL">Full payment</option>
+              <option value="INSTALLMENT_3">3 months installment</option>
+              <option value="INSTALLMENT_6">6 months installment</option>
+            </select>
+          </Field>
           <Field label="Payment method">
             <select
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
@@ -326,6 +354,12 @@ export function AdminOrdersPage() {
               ))}
             </select>
           </Field>
+          {paymentMode !== "FULL" ? (
+            <p className="text-xs text-ink-muted">
+              First installment is recorded as paid now. Remaining dues are due on the
+              1st of each following month (pay by the 10th).
+            </p>
+          ) : null}
           <Field label="Batch (optional)">
             <select
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"

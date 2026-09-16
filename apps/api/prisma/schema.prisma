@@ -38,6 +38,11 @@ enum BatchStatus {
   CLOSED
 }
 
+enum BatchDeliveryMode {
+  ONLINE
+  OFFLINE
+}
+
 enum OrderChannel {
   ONLINE
   ADMIN
@@ -62,6 +67,18 @@ enum AdminPaymentMethod {
   OTHER
 }
 
+enum InstallmentPlanStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum InstallmentStatus {
+  DUE
+  PAID
+  OVERDUE
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
@@ -73,11 +90,12 @@ model User {
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
 
-  studentProfile StudentProfile?
-  tokens         AuthToken[]
-  taughtBatches  Batch[]     @relation("BatchTeacher")
-  orders         Order[]
-  enrollments    Enrollment[]
+  studentProfile  StudentProfile?
+  tokens          AuthToken[]
+  taughtBatches   Batch[]           @relation("BatchTeacher")
+  orders          Order[]
+  enrollments     Enrollment[]
+  installmentPlans InstallmentPlan[]
 }
 
 model StudentProfile {
@@ -113,32 +131,39 @@ model WebsiteSettings {
 }
 
 model Course {
-  id          String       @id @default(cuid())
-  title       String
-  slug        String       @unique
-  overview    String       @db.Text
-  duration    String
-  priceBdt    Int
-  outlineText String?      @db.Text
-  faqText     String?      @db.Text
-  status      CourseStatus @default(DRAFT)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  id             String       @id @default(cuid())
+  title          String
+  slug           String       @unique
+  overview       String       @db.Text
+  duration       String
+  priceBdt       Int
+  outlineText    String?      @db.Text
+  faqText        String?      @db.Text
+  coverImageKey  String?
+  coverImageUrl  String?      @db.Text
+  status         CourseStatus @default(DRAFT)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  batches     Batch[]
-  orders      Order[]
-  enrollments Enrollment[]
+  batches          Batch[]
+  orders           Order[]
+  enrollments      Enrollment[]
+  installmentPlans InstallmentPlan[]
 }
 
 model Batch {
-  id              String      @id @default(cuid())
+  id              String            @id @default(cuid())
   courseId        String
   name            String
-  scheduleSummary String?     @db.Text
-  status          BatchStatus @default(UPCOMING)
+  scheduleSummary String?           @db.Text
+  status          BatchStatus       @default(UPCOMING)
+  deliveryMode    BatchDeliveryMode @default(ONLINE)
+  seatCapacity    Int               @default(30)
+  startDate       DateTime?
+  endDate         DateTime?
   teacherId       String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
 
   course         Course              @relation(fields: [courseId], references: [id], onDelete: Cascade)
   teacher        User?               @relation("BatchTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
@@ -212,9 +237,10 @@ model Order {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  user       User         @relation(fields: [userId], references: [id], onDelete: Restrict)
-  course     Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  enrollment Enrollment?
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  enrollment  Enrollment?
+  installment Installment?
 
   @@index([userId])
   @@index([courseId])
@@ -222,21 +248,68 @@ model Order {
 }
 
 model Enrollment {
-  id        String           @id @default(cuid())
-  userId    String
-  courseId  String
-  orderId   String?          @unique
-  batchId   String?
-  status    EnrollmentStatus @default(ACTIVE)
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id            String           @id @default(cuid())
+  userId        String
+  courseId      String
+  orderId       String?          @unique
+  batchId       String?
+  status        EnrollmentStatus @default(ACTIVE)
+  accessBlocked Boolean          @default(false)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Restrict)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Restrict)
-  order  Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
-  batch  Batch?  @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  order           Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  batch           Batch?           @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  installmentPlan InstallmentPlan?
 
   @@unique([userId, courseId])
   @@index([batchId])
   @@index([status])
+}
+
+model InstallmentPlan {
+  id           String                @id @default(cuid())
+  enrollmentId String                @unique
+  userId       String
+  courseId     String
+  totalBdt     Int
+  months       Int
+  graceDays    Int                   @default(10)
+  status       InstallmentPlanStatus @default(ACTIVE)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  enrollment  Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Restrict)
+  installments Installment[]
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+}
+
+model Installment {
+  id            String            @id @default(cuid())
+  planId        String
+  sequence      Int
+  amountBdt     Int
+  dueDate       DateTime
+  payByDate     DateTime
+  status        InstallmentStatus @default(DUE)
+  paidAt        DateTime?
+  paymentMethod AdminPaymentMethod?
+  orderId       String?           @unique
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  plan  InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  order Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@unique([planId, sequence])
+  @@index([status])
+  @@index([dueDate])
+  @@index([payByDate])
 }

@@ -2,7 +2,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { BatchStatus } from "@arva/shared";
+import type { BatchDeliveryMode, BatchStatus } from "@arva/shared";
 import { api, type Batch, type Course, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -12,6 +12,12 @@ import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
 
 const batchStatuses: BatchStatus[] = ["UPCOMING", "ONGOING", "CLOSED"];
+const deliveryModes: BatchDeliveryMode[] = ["ONLINE", "OFFLINE"];
+
+function toDateInput(value: string | null | undefined) {
+  if (!value) return "";
+  return value.slice(0, 10);
+}
 
 export function AdminBatchesPage() {
   const confirm = useConfirm();
@@ -28,6 +34,10 @@ export function AdminBatchesPage() {
   const [scheduleSummary, setScheduleSummary] = useState("");
   const [teacherId, setTeacherId] = useState("");
   const [status, setStatus] = useState<BatchStatus>("UPCOMING");
+  const [deliveryMode, setDeliveryMode] = useState<BatchDeliveryMode>("ONLINE");
+  const [seatCapacity, setSeatCapacity] = useState(30);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -52,6 +62,10 @@ export function AdminBatchesPage() {
     setScheduleSummary("");
     setTeacherId("");
     setStatus("UPCOMING");
+    setDeliveryMode("ONLINE");
+    setSeatCapacity(30);
+    setStartDate("");
+    setEndDate("");
   }
 
   function openCreate() {
@@ -68,6 +82,10 @@ export function AdminBatchesPage() {
     setScheduleSummary(batch.scheduleSummary ?? "");
     setTeacherId(batch.teacherId ?? "");
     setStatus((batch.status as BatchStatus) || "UPCOMING");
+    setDeliveryMode((batch.deliveryMode as BatchDeliveryMode) || "ONLINE");
+    setSeatCapacity(batch.seatCapacity ?? 30);
+    setStartDate(toDateInput(batch.startDate));
+    setEndDate(toDateInput(batch.endDate));
     setModalOpen(true);
   }
 
@@ -75,22 +93,24 @@ export function AdminBatchesPage() {
     e.preventDefault();
     setError(null);
     setSaving(true);
+    const payload = {
+      name,
+      scheduleSummary: scheduleSummary || null,
+      status,
+      teacherId: teacherId || null,
+      deliveryMode,
+      seatCapacity,
+      startDate: startDate || null,
+      endDate: endDate || null,
+    };
     try {
       if (editingId) {
-        await api.adminUpdateBatch(editingId, {
-          name,
-          scheduleSummary: scheduleSummary || null,
-          status,
-          teacherId: teacherId || null,
-        });
+        await api.adminUpdateBatch(editingId, payload);
         toast.success("Batch updated");
       } else {
         await api.adminCreateBatch({
           courseId,
-          name,
-          scheduleSummary: scheduleSummary || null,
-          status,
-          teacherId: teacherId || null,
+          ...payload,
         });
         toast.success("Batch created");
       }
@@ -127,7 +147,12 @@ export function AdminBatchesPage() {
         header: "Batch",
         cell: ({ row }) => (
           <div>
-            <p className="font-medium">{row.original.name}</p>
+            <Link
+              to={`/admin/batches/${row.original.id}`}
+              className="font-medium text-accent hover:underline"
+            >
+              {row.original.name}
+            </Link>
             {row.original.scheduleSummary ? (
               <p className="text-xs text-ink-muted">{row.original.scheduleSummary}</p>
             ) : null}
@@ -138,6 +163,13 @@ export function AdminBatchesPage() {
         id: "course",
         header: "Course",
         accessorFn: (row) => row.course?.title ?? row.courseId,
+      },
+      { accessorKey: "deliveryMode", header: "Mode" },
+      {
+        id: "seats",
+        header: "Seats",
+        cell: ({ row }) =>
+          `${row.original.seatsFilled ?? 0}/${row.original.seatCapacity}`,
       },
       { accessorKey: "status", header: "Status" },
       {
@@ -151,6 +183,12 @@ export function AdminBatchesPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/admin/batches/${row.original.id}`}
+              className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
+            >
+              Open
+            </Link>
             <button
               type="button"
               className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
@@ -158,14 +196,6 @@ export function AdminBatchesPage() {
             >
               Edit
             </button>
-            {row.original.course ? (
-              <Link
-                to={`/admin/courses/${row.original.course.id}`}
-                className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
-              >
-                Manage
-              </Link>
-            ) : null}
             <button
               type="button"
               className="rounded-lg border border-red-500/40 px-2 py-1 text-xs text-red-300 hover:border-red-400 hover:bg-red-500/15 hover:text-red-200"
@@ -241,6 +271,49 @@ export function AdminBatchesPage() {
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Delivery mode">
+              <select
+                className="rounded-lg border border-border bg-surface px-3 py-2"
+                value={deliveryMode}
+                onChange={(e) => setDeliveryMode(e.target.value as BatchDeliveryMode)}
+              >
+                {deliveryModes.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="Seat capacity">
+              <input
+                type="number"
+                min={1}
+                className="rounded-lg border border-border bg-surface px-3 py-2"
+                value={seatCapacity}
+                required
+                onChange={(e) => setSeatCapacity(Number(e.target.value))}
+              />
+            </Field>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="Start date">
+              <input
+                type="date"
+                className="rounded-lg border border-border bg-surface px-3 py-2"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </Field>
+            <Field label="End date">
+              <input
+                type="date"
+                className="rounded-lg border border-border bg-surface px-3 py-2"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </Field>
+          </div>
           <Field label="Status">
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2"

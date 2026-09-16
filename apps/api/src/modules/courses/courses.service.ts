@@ -7,6 +7,12 @@ import type {
 } from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
 import { AppError } from "../../common/errors.js";
+import {
+  deleteStoredObject,
+  getDownloadUrl,
+  storeCourseCoverImage,
+} from "../media/media.service.js";
+import { parseDateInput } from "../purchases/installments.util.js";
 
 function slugify(title: string) {
   return title
@@ -26,6 +32,8 @@ export type CourseDto = {
   priceBdt: number;
   outlineText: string | null;
   faqText: string | null;
+  coverImageKey: string | null;
+  coverImageUrl: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -38,6 +46,11 @@ export type BatchDto = {
   name: string;
   scheduleSummary: string | null;
   status: string;
+  deliveryMode: string;
+  seatCapacity: number;
+  seatsFilled?: number;
+  startDate: string | null;
+  endDate: string | null;
   teacherId: string | null;
   teacher: { id: string; fullName: string; email: string } | null;
   course?: { id: string; title: string; slug: string };
@@ -45,7 +58,30 @@ export type BatchDto = {
   updatedAt: string;
 };
 
-function toCourseDto(course: Course & { _count?: { batches: number } }): CourseDto {
+export type BatchOverviewDto = BatchDto & {
+  seatsFilled: number;
+  students: {
+    id: string;
+    fullName: string;
+    email: string;
+    enrolledAt: string;
+    enrollmentId: string;
+  }[];
+};
+
+async function resolveCoverUrl(course: Course): Promise<string | null> {
+  if (!course.coverImageKey) return course.coverImageUrl;
+  try {
+    return await getDownloadUrl(course.coverImageKey);
+  } catch (err) {
+    console.error("resolveCoverUrl failed", err);
+    return course.coverImageUrl;
+  }
+}
+
+async function toCourseDto(
+  course: Course & { _count?: { batches: number } },
+): Promise<CourseDto> {
   return {
     id: course.id,
     title: course.title,
@@ -55,6 +91,8 @@ function toCourseDto(course: Course & { _count?: { batches: number } }): CourseD
     priceBdt: course.priceBdt,
     outlineText: course.outlineText,
     faqText: course.faqText,
+    coverImageKey: course.coverImageKey,
+    coverImageUrl: await resolveCoverUrl(course),
     status: course.status,
     createdAt: course.createdAt.toISOString(),
     updatedAt: course.updatedAt.toISOString(),
@@ -66,6 +104,7 @@ function toBatchDto(
   batch: Batch & {
     teacher?: Pick<User, "id" | "fullName" | "email"> | null;
     course?: Pick<Course, "id" | "title" | "slug">;
+    _count?: { enrollments: number };
   },
 ): BatchDto {
   return {
@@ -74,6 +113,11 @@ function toBatchDto(
     name: batch.name,
     scheduleSummary: batch.scheduleSummary,
     status: batch.status,
+    deliveryMode: batch.deliveryMode,
+    seatCapacity: batch.seatCapacity,
+    seatsFilled: batch._count?.enrollments,
+    startDate: batch.startDate?.toISOString() ?? null,
+    endDate: batch.endDate?.toISOString() ?? null,
     teacherId: batch.teacherId,
     teacher: batch.teacher
       ? {
@@ -110,13 +154,46 @@ async function assertTeacher(teacherId: string | null | undefined) {
   }
 }
 
+function parseOptionalDate(value: string | null | undefined, field: string): Date | null {
+  try {
+    return parseDateInput(value);
+  } catch {
+    throw new AppError(400, `Invalid ${field}`, "VALIDATION_ERROR");
+  }
+}
+
+export async function assertBatchHasSeat(batchId: string, excludeEnrollmentId?: string) {
+  const batch = await prisma.batch.findUnique({
+    where: { id: batchId },
+    include: {
+      _count: {
+        select: {
+          enrollments: {
+            where: {
+              status: "ACTIVE",
+              ...(excludeEnrollmentId ? { NOT: { id: excludeEnrollmentId } } : {}),
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!batch) {
+    throw new AppError(404, "Batch not found", "NOT_FOUND");
+  }
+  if (batch._count.enrollments >= batch.seatCapacity) {
+    throw new AppError(409, "Batch is full", "BATCH_FULL");
+  }
+  return batch;
+}
+
 export async function listPublishedCourses() {
   const courses = await prisma.course.findMany({
     where: { status: "PUBLISHED" },
     orderBy: { title: "asc" },
     include: { _count: { select: { batches: true } } },
   });
-  return courses.map(toCourseDto);
+  return Promise.all(courses.map(toCourseDto));
 }
 
 export async function getPublishedCourseBySlug(slug: string) {
@@ -135,7 +212,7 @@ export async function adminListCourses() {
     orderBy: { title: "asc" },
     include: { _count: { select: { batches: true } } },
   });
-  return courses.map(toCourseDto);
+  return Promise.all(courses.map(toCourseDto));
 }
 
 export async function adminGetCourse(id: string) {
@@ -144,7 +221,10 @@ export async function adminGetCourse(id: string) {
     include: {
       _count: { select: { batches: true } },
       batches: {
-        include: { teacher: { select: { id: true, fullName: true, email: true } } },
+        include: {
+          teacher: { select: { id: true, fullName: true, email: true } },
+          _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
+        },
         orderBy: { createdAt: "desc" },
       },
     },
@@ -153,7 +233,7 @@ export async function adminGetCourse(id: string) {
     throw new AppError(404, "Course not found", "NOT_FOUND");
   }
   return {
-    ...toCourseDto(course),
+    ...(await toCourseDto(course)),
     batches: course.batches.map(toBatchDto),
   };
 }
@@ -172,6 +252,8 @@ export async function createCourse(input: CreateCourseInput) {
       outlineText: input.outlineText ?? null,
       faqText: input.faqText ?? null,
       status: input.status ?? "DRAFT",
+      coverImageKey: input.coverImageKey ?? null,
+      coverImageUrl: input.coverImageUrl ?? null,
     },
     include: { _count: { select: { batches: true } } },
   });
@@ -195,6 +277,10 @@ export async function updateCourse(id: string, input: UpdateCourseInput) {
     await assertUniqueSlug(slug, id);
   }
 
+  if (input.coverImageKey === null && existing.coverImageKey) {
+    await deleteStoredObject(existing.coverImageKey);
+  }
+
   const course = await prisma.course.update({
     where: { id },
     data: {
@@ -206,6 +292,44 @@ export async function updateCourse(id: string, input: UpdateCourseInput) {
       ...(input.outlineText !== undefined ? { outlineText: input.outlineText } : {}),
       ...(input.faqText !== undefined ? { faqText: input.faqText } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
+      ...(input.coverImageKey !== undefined
+        ? { coverImageKey: input.coverImageKey }
+        : {}),
+      ...(input.coverImageUrl !== undefined
+        ? { coverImageUrl: input.coverImageUrl }
+        : {}),
+    },
+    include: { _count: { select: { batches: true } } },
+  });
+  return toCourseDto(course);
+}
+
+export async function uploadCourseCover(
+  courseId: string,
+  file: { originalname: string; mimetype: string; buffer: Buffer },
+) {
+  const existing = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!existing) {
+    throw new AppError(404, "Course not found", "NOT_FOUND");
+  }
+
+  const stored = await storeCourseCoverImage({
+    courseId,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    buffer: file.buffer,
+  });
+  const url = await getDownloadUrl(stored.storageKey);
+
+  if (existing.coverImageKey && existing.coverImageKey !== stored.storageKey) {
+    await deleteStoredObject(existing.coverImageKey);
+  }
+
+  const course = await prisma.course.update({
+    where: { id: courseId },
+    data: {
+      coverImageKey: stored.storageKey,
+      coverImageUrl: url,
     },
     include: { _count: { select: { batches: true } } },
   });
@@ -217,6 +341,9 @@ export async function deleteCourse(id: string) {
   if (!existing) {
     throw new AppError(404, "Course not found", "NOT_FOUND");
   }
+  if (existing.coverImageKey) {
+    await deleteStoredObject(existing.coverImageKey);
+  }
   await prisma.course.delete({ where: { id } });
   return { ok: true as const };
 }
@@ -227,10 +354,46 @@ export async function adminListBatches(courseId?: string) {
     include: {
       teacher: { select: { id: true, fullName: true, email: true } },
       course: { select: { id: true, title: true, slug: true } },
+      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
     orderBy: { createdAt: "desc" },
   });
   return batches.map(toBatchDto);
+}
+
+export async function adminGetBatch(id: string): Promise<BatchOverviewDto> {
+  const batch = await prisma.batch.findUnique({
+    where: { id },
+    include: {
+      teacher: { select: { id: true, fullName: true, email: true } },
+      course: { select: { id: true, title: true, slug: true } },
+      enrollments: {
+        where: { status: "ACTIVE" },
+        orderBy: { createdAt: "asc" },
+        include: {
+          user: { select: { id: true, fullName: true, email: true } },
+        },
+      },
+    },
+  });
+  if (!batch) {
+    throw new AppError(404, "Batch not found", "NOT_FOUND");
+  }
+
+  return {
+    ...toBatchDto({
+      ...batch,
+      _count: { enrollments: batch.enrollments.length },
+    }),
+    seatsFilled: batch.enrollments.length,
+    students: batch.enrollments.map((e) => ({
+      id: e.user.id,
+      fullName: e.user.fullName,
+      email: e.user.email,
+      enrolledAt: e.createdAt.toISOString(),
+      enrollmentId: e.id,
+    })),
+  };
 }
 
 export async function createBatch(input: CreateBatchInput) {
@@ -240,6 +403,13 @@ export async function createBatch(input: CreateBatchInput) {
   }
   await assertTeacher(input.teacherId);
 
+  const startDate =
+    input.startDate !== undefined
+      ? parseOptionalDate(input.startDate, "startDate")
+      : null;
+  const endDate =
+    input.endDate !== undefined ? parseOptionalDate(input.endDate, "endDate") : null;
+
   const batch = await prisma.batch.create({
     data: {
       courseId: input.courseId,
@@ -247,22 +417,40 @@ export async function createBatch(input: CreateBatchInput) {
       scheduleSummary: input.scheduleSummary ?? null,
       status: input.status ?? "UPCOMING",
       teacherId: input.teacherId ?? null,
+      deliveryMode: input.deliveryMode ?? "ONLINE",
+      seatCapacity: input.seatCapacity ?? 30,
+      startDate,
+      endDate,
     },
     include: {
       teacher: { select: { id: true, fullName: true, email: true } },
       course: { select: { id: true, title: true, slug: true } },
+      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
   });
   return toBatchDto(batch);
 }
 
 export async function updateBatch(id: string, input: UpdateBatchInput) {
-  const existing = await prisma.batch.findUnique({ where: { id } });
+  const existing = await prisma.batch.findUnique({
+    where: { id },
+    include: { _count: { select: { enrollments: { where: { status: "ACTIVE" } } } } },
+  });
   if (!existing) {
     throw new AppError(404, "Batch not found", "NOT_FOUND");
   }
   if (input.teacherId !== undefined) {
     await assertTeacher(input.teacherId);
+  }
+  if (
+    input.seatCapacity !== undefined &&
+    input.seatCapacity < existing._count.enrollments
+  ) {
+    throw new AppError(
+      400,
+      "Seat capacity cannot be below current enrollment count",
+      "SEAT_CAPACITY_TOO_LOW",
+    );
   }
 
   const batch = await prisma.batch.update({
@@ -274,10 +462,23 @@ export async function updateBatch(id: string, input: UpdateBatchInput) {
         : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.teacherId !== undefined ? { teacherId: input.teacherId } : {}),
+      ...(input.deliveryMode !== undefined
+        ? { deliveryMode: input.deliveryMode }
+        : {}),
+      ...(input.seatCapacity !== undefined
+        ? { seatCapacity: input.seatCapacity }
+        : {}),
+      ...(input.startDate !== undefined
+        ? { startDate: parseOptionalDate(input.startDate, "startDate") }
+        : {}),
+      ...(input.endDate !== undefined
+        ? { endDate: parseOptionalDate(input.endDate, "endDate") }
+        : {}),
     },
     include: {
       teacher: { select: { id: true, fullName: true, email: true } },
       course: { select: { id: true, title: true, slug: true } },
+      _count: { select: { enrollments: { where: { status: "ACTIVE" } } } },
     },
   });
   return toBatchDto(batch);

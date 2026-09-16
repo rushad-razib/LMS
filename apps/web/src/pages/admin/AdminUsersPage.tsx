@@ -1,5 +1,6 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { UserRole } from "@arva/shared";
 import { api, ApiError } from "@/lib/api";
@@ -161,7 +162,16 @@ export function AdminUsersPage() {
         header: "Name",
         cell: ({ row }) => (
           <div>
-            <p className="font-medium">{row.original.fullName}</p>
+            {row.original.role === "STUDENT" ? (
+              <Link
+                to={`/admin/students/${row.original.id}`}
+                className="font-medium text-accent hover:underline"
+              >
+                {row.original.fullName}
+              </Link>
+            ) : (
+              <p className="font-medium">{row.original.fullName}</p>
+            )}
             <p className="text-xs text-ink-muted">{row.original.email}</p>
           </div>
         ),

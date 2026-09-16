@@ -30,6 +30,8 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().optional().default(""),
   S3_SECRET_ACCESS_KEY: z.string().optional().default(""),
   S3_PUBLIC_URL: z.string().optional().default(""),
+  /** Shared secret for internal cron endpoints (installment reminders). */
+  CRON_SECRET: z.string().optional().default(""),
 });
 
 export type Env = z.infer<typeof envSchema>;

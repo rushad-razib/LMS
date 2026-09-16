@@ -88,6 +88,13 @@ export function CourseDetailPage() {
       <Link to="/courses" className="text-sm text-accent hover:underline">
         ← Courses
       </Link>
+      {course.coverImageUrl ? (
+        <img
+          src={course.coverImageUrl}
+          alt=""
+          className="mt-4 h-56 w-full rounded-xl object-cover"
+        />
+      ) : null}
       <h1 className="mt-4 font-display text-4xl font-bold">{course.title}</h1>
       <p className="mt-2 text-ink-muted">
         {course.duration} · ৳{course.priceBdt.toLocaleString("en-BD")}

@@ -29,6 +29,12 @@ ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\lms_deploy -N '""' -C "github-act
 - Mode: Production
 - Env already set: `WEB_ORIGIN`, `DATABASE_URL`, JWTs
 - For Phase 3 payments also set: `SSLCOMMERZ_STORE_ID`, `SSLCOMMERZ_STORE_PASSWORD`, `SSLCOMMERZ_IS_LIVE=false` (sandbox), and `API_ORIGIN=https://lms.rushadrazib.com` (same host is fine) so IPN/success callbacks resolve
+- For installment due emails set `CRON_SECRET` and add a daily cPanel cron:
+
+```bash
+curl -sS -X POST "https://lms.rushadrazib.com/api/v1/internal/installment-reminders" \
+  -H "x-cron-secret: YOUR_CRON_SECRET"
+```
 
 ## 4. Trigger deploy
 

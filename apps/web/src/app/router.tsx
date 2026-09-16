@@ -29,7 +29,9 @@ import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
 import { AdminCoursesPage } from "@/pages/admin/AdminCoursesPage";
 import { AdminCourseBatchesPage } from "@/pages/admin/AdminCourseBatchesPage";
 import { AdminBatchesPage } from "@/pages/admin/AdminBatchesPage";
+import { AdminBatchDetailPage } from "@/pages/admin/AdminBatchDetailPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
+import { AdminStudentDetailPage } from "@/pages/admin/AdminStudentDetailPage";
 import { TeacherDashboardPage } from "@/pages/teacher/TeacherDashboardPage";
 import {
   TeacherBatchHubPage,
@@ -100,10 +102,12 @@ export function AppRouter() {
         >
           <Route index element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="students/:userId" element={<AdminStudentDetailPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="courses/:courseId" element={<AdminCourseBatchesPage />} />
           <Route path="batches" element={<AdminBatchesPage />} />
+          <Route path="batches/:batchId" element={<AdminBatchDetailPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
           <Route path="*" element={<Placeholder title="Coming in a later phase" />} />
         </Route>

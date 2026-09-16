@@ -5,6 +5,8 @@ import {
   AdminEnrollInputSchema,
   AssignEnrollmentBatchInputSchema,
   CheckoutInputSchema,
+  MarkInstallmentPaidInputSchema,
+  SetEnrollmentAccessInputSchema,
 } from "@arva/shared";
 import { validateBody } from "../../common/middleware/validate.js";
 import {
@@ -179,6 +181,20 @@ purchasesRouter.get(
   },
 );
 
+purchasesRouter.get(
+  "/admin/students/:userId",
+  requireAuth,
+  requireRoles("ADMIN"),
+  async (req, res, next) => {
+    try {
+      const detail = await purchasesService.getAdminStudentDetail(paramId(req, "userId"));
+      res.json(detail);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
 purchasesRouter.post(
   "/admin/enroll",
   requireAuth,
@@ -206,6 +222,39 @@ purchasesRouter.patch(
         req.body,
       );
       res.json({ enrollment });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+purchasesRouter.patch(
+  "/admin/enrollments/:id/access",
+  requireAuth,
+  requireRoles("ADMIN"),
+  validateBody(SetEnrollmentAccessInputSchema),
+  async (req, res, next) => {
+    try {
+      const enrollment = await purchasesService.setEnrollmentAccess(
+        paramId(req, "id"),
+        req.body,
+      );
+      res.json({ enrollment });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+purchasesRouter.post(
+  "/admin/installments/:id/pay",
+  requireAuth,
+  requireRoles("ADMIN"),
+  validateBody(MarkInstallmentPaidInputSchema),
+  async (req, res, next) => {
+    try {
+      const result = await purchasesService.markInstallmentPaid(paramId(req, "id"), req.body);
+      res.json(result);
     } catch (err) {
       next(err);
     }

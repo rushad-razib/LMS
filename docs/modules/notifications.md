@@ -13,9 +13,16 @@
 | Admin enrolled student | Student |
 | Batch assigned / reassigned | Student |
 | Batch announcement | All students in batch |
+| Installment due (1st of month) | Student + all Admins |
 | Password reset | User |
 | Teacher / Admin invite (set-password) | Teacher / Admin |
 | Contact form | Admin inbox address from settings |
+
+## Installment reminders
+
+- Secured cron: `POST /api/v1/internal/installment-reminders` with header `x-cron-secret: $CRON_SECRET`  
+- Run daily from cPanel cron; job no-ops except on the 1st when dues exist  
+- Student email includes amount and “please clear the due amount by [payByDate]”  
 
 ## Rules
 

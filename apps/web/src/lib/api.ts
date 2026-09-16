@@ -1,5 +1,7 @@
 import type {
+  AdminEnrollPaymentMode,
   AdminPaymentMethod,
+  BatchDeliveryMode,
   BatchStatus,
   CourseStatus,
   CreateBatchInput,
@@ -33,6 +35,8 @@ export type Course = {
   priceBdt: number;
   outlineText: string | null;
   faqText: string | null;
+  coverImageKey?: string | null;
+  coverImageUrl?: string | null;
   status: CourseStatus | string;
   createdAt: string;
   updatedAt: string;
@@ -46,11 +50,27 @@ export type Batch = {
   name: string;
   scheduleSummary: string | null;
   status: BatchStatus | string;
+  deliveryMode: BatchDeliveryMode | string;
+  seatCapacity: number;
+  seatsFilled?: number;
+  startDate: string | null;
+  endDate: string | null;
   teacherId: string | null;
   teacher: { id: string; fullName: string; email: string } | null;
   course?: { id: string; title: string; slug: string };
   createdAt: string;
   updatedAt: string;
+};
+
+export type BatchOverview = Batch & {
+  seatsFilled: number;
+  students: {
+    id: string;
+    fullName: string;
+    email: string;
+    enrolledAt: string;
+    enrollmentId: string;
+  }[];
 };
 
 export type OrderRow = {
@@ -257,6 +277,8 @@ export const api = {
         ? `/courses/batches?courseId=${encodeURIComponent(courseId)}`
         : "/courses/batches",
     ),
+  adminGetBatch: (id: string) =>
+    request<{ batch: BatchOverview }>(`/courses/batches/${id}`),
   adminCreateBatch: (body: CreateBatchInput) =>
     request<{ batch: Batch }>("/courses/batches", { method: "POST", body }),
   adminUpdateBatch: (id: string, body: UpdateBatchInput) =>
@@ -272,6 +294,14 @@ export const api = {
     request<{ teachers: { id: string; fullName: string; email: string }[] }>(
       "/courses/teachers",
     ),
+  adminUploadCourseCover: (id: string, file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<{ course: Course }>(`/courses/${id}/cover`, {
+      method: "POST",
+      body,
+    });
+  },
 
   checkout: (courseId: string) =>
     request<{
@@ -293,6 +323,7 @@ export const api = {
     courseId: string;
     paymentMethod: AdminPaymentMethod;
     batchId?: string | null;
+    paymentMode?: AdminEnrollPaymentMode;
   }) =>
     request<{ order: OrderRow; enrollment: EnrollmentRow }>(
       "/purchases/admin/enroll",
@@ -303,6 +334,18 @@ export const api = {
       `/purchases/admin/enrollments/${id}/batch`,
       { method: "PATCH", body: { batchId } },
     ),
+  adminSetEnrollmentAccess: (id: string, accessBlocked: boolean) =>
+    request<{ enrollment: EnrollmentRow }>(
+      `/purchases/admin/enrollments/${id}/access`,
+      { method: "PATCH", body: { accessBlocked } },
+    ),
+  adminMarkInstallmentPaid: (id: string, paymentMethod: AdminPaymentMethod) =>
+    request<{ order: OrderRow; installment: InstallmentRow }>(
+      `/purchases/admin/installments/${id}/pay`,
+      { method: "POST", body: { paymentMethod } },
+    ),
+  adminStudentDetail: (userId: string) =>
+    request<AdminStudentDetail>(`/purchases/admin/students/${userId}`),
   adminDashboardCounts: () =>
     request<{
       students: number;
@@ -411,6 +454,7 @@ export type StudentEnrollment = {
   id: string;
   status: string;
   batchId: string | null;
+  accessBlocked?: boolean;
   awaitingBatch: boolean;
   createdAt: string;
   course: {
@@ -428,6 +472,48 @@ export type StudentEnrollment = {
     status: string;
     teacher: { id: string; fullName: string } | null;
   } | null;
+};
+
+export type InstallmentRow = {
+  id: string;
+  sequence: number;
+  amountBdt: number;
+  dueDate: string;
+  payByDate: string;
+  status: string;
+  paidAt: string | null;
+  paymentMethod: string | null;
+  orderId: string | null;
+};
+
+export type AdminStudentDetail = {
+  student: {
+    id: string;
+    fullName: string;
+    email: string;
+    status: string;
+    phone: string | null;
+    emailVerifiedAt: string | null;
+    createdAt: string;
+  };
+  enrollments: {
+    id: string;
+    createdAt: string;
+    accessBlocked: boolean;
+    batch: { id: string; name: string } | null;
+    course: { id: string; title: string; slug: string; priceBdt: number };
+    totalBdt: number;
+    dueBdt: number;
+    paidBdt: number;
+    paymentMode: string;
+    plan: {
+      id: string;
+      months: number;
+      status: string;
+      graceDays: number;
+      installments: InstallmentRow[];
+    } | null;
+  }[];
 };
 
 export type StudentLiveSession = {

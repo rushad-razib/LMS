@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request } from "express";
+import multer from "multer";
 import {
   AssignBatchTeacherInputSchema,
   CreateBatchInputSchema,
@@ -9,9 +10,15 @@ import {
 } from "@arva/shared";
 import { validateBody } from "../../common/middleware/validate.js";
 import { requireAuth, requireRoles } from "../../common/middleware/auth.js";
+import { AppError } from "../../common/errors.js";
 import * as coursesService from "./courses.service.js";
 
 export const coursesRouter = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+});
 
 function paramId(req: Request, name: string): string {
   const value = req.params[name];
@@ -69,6 +76,20 @@ coursesRouter.get(
         typeof req.query.courseId === "string" ? req.query.courseId : undefined;
       const batches = await coursesService.adminListBatches(courseId);
       res.json({ batches });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+coursesRouter.get(
+  "/batches/:id",
+  requireAuth,
+  requireRoles("ADMIN"),
+  async (req, res, next) => {
+    try {
+      const batch = await coursesService.adminGetBatch(paramId(req, "id"));
+      res.json({ batch });
     } catch (err) {
       next(err);
     }
@@ -146,6 +167,32 @@ coursesRouter.post(
     try {
       const course = await coursesService.createCourse(req.body);
       res.status(201).json({ course });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+coursesRouter.post(
+  "/:id/cover",
+  requireAuth,
+  requireRoles("ADMIN"),
+  (req, res, next) => {
+    upload.single("file")(req, res, (err) => {
+      if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+        next(new AppError(400, "Images must be 2MB or smaller", "FILE_TOO_LARGE"));
+        return;
+      }
+      next(err);
+    });
+  },
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        throw new AppError(400, "File is required", "VALIDATION_ERROR");
+      }
+      const course = await coursesService.uploadCourseCover(paramId(req, "id"), req.file);
+      res.json({ course });
     } catch (err) {
       next(err);
     }

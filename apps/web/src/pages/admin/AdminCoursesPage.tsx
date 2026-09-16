@@ -26,6 +26,8 @@ export function AdminCoursesPage() {
   const [outlineText, setOutlineText] = useState("");
   const [faqText, setFaqText] = useState("");
   const [status, setStatus] = useState<CourseStatus>("DRAFT");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -46,6 +48,8 @@ export function AdminCoursesPage() {
     setFaqText("");
     setPriceBdt(10000);
     setStatus("DRAFT");
+    setCoverUrl(null);
+    setCoverFile(null);
   }
 
   function openCreate() {
@@ -64,6 +68,8 @@ export function AdminCoursesPage() {
     setOutlineText(course.outlineText ?? "");
     setFaqText(course.faqText ?? "");
     setStatus((course.status as CourseStatus) || "DRAFT");
+    setCoverUrl(course.coverImageUrl ?? null);
+    setCoverFile(null);
     setModalOpen(true);
   }
 
@@ -81,12 +87,18 @@ export function AdminCoursesPage() {
       status,
     };
     try {
+      let courseId = editingId;
       if (editingId) {
         await api.adminUpdateCourse(editingId, payload);
         toast.success("Course updated");
       } else {
-        await api.adminCreateCourse(payload);
+        const created = await api.adminCreateCourse(payload);
+        courseId = created.course.id;
         toast.success("Course created");
+      }
+      if (courseId && coverFile) {
+        await api.adminUploadCourseCover(courseId, coverFile);
+        toast.success("Cover image uploaded");
       }
       resetForm();
       setModalOpen(false);
@@ -271,6 +283,42 @@ export function AdminCoursesPage() {
               value={faqText}
               onChange={(e) => setFaqText(e.target.value)}
             />
+          </Field>
+          <Field label="Cover image" className="md:col-span-2">
+            {coverUrl ? (
+              <img
+                src={coverUrl}
+                alt=""
+                className="mb-2 h-32 w-full max-w-md rounded-lg object-cover"
+              />
+            ) : null}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              className="text-sm"
+              onChange={(e) => setCoverFile(e.target.files?.[0] ?? null)}
+            />
+            {editingId && coverUrl ? (
+              <button
+                type="button"
+                className="mt-2 text-xs text-red-300 hover:underline"
+                onClick={async () => {
+                  try {
+                    await api.adminUpdateCourse(editingId, {
+                      coverImageKey: null,
+                      coverImageUrl: null,
+                    });
+                    setCoverUrl(null);
+                    toast.success("Cover removed");
+                    await load();
+                  } catch (err) {
+                    toast.error(err instanceof ApiError ? err.message : "Remove failed");
+                  }
+                }}
+              >
+                Remove cover
+              </button>
+            ) : null}
           </Field>
           <button
             type="submit"

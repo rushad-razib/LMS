@@ -173,6 +173,30 @@ export async function storeMaterialFile(input: {
   };
 }
 
+export async function storeCourseCoverImage(input: {
+  courseId: string;
+  originalName: string;
+  mimeType: string;
+  buffer: Buffer;
+}): Promise<StoredObject> {
+  const kind = classifyUpload(input.mimeType, input.buffer.byteLength);
+  if (kind !== "image") {
+    throw new AppError(400, "Course cover must be an image", "UNSUPPORTED_FILE_TYPE");
+  }
+  const original = safeFileName(input.originalName);
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const webp = await sharp(input.buffer).webp({ quality: 82 }).toBuffer();
+  const fileName = `${basenameWithoutExt(original) || "cover"}.webp`;
+  const storageKey = `courses/${input.courseId}/cover/${id}.webp`;
+  await putObject(storageKey, webp, "image/webp");
+  return {
+    storageKey,
+    mimeType: "image/webp",
+    sizeBytes: webp.byteLength,
+    fileName,
+  };
+}
+
 export async function deleteStoredObject(storageKey: string) {
   if (!storageKey || storageKey.startsWith("stubs/")) return;
   try {
