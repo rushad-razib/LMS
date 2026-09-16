@@ -48,8 +48,11 @@ The job builds, uploads via one tar-over-SSH session (cPanel often has no rsync)
 
 cPanel **NPROC** was full **during the job** (login or `npm`/`prisma` could not fork). Statistics is a live snapshot — check it while the workflow is running, not after.
 
+Same if you see:
+`pthread_create: Resource temporarily unavailable` / `npm install` **Aborted (core dumped)** / exit **134**.
+
 1. cPanel → Setup Node.js App → **Stop** the app (do not start extra Node copies).
-2. Kill leftover `npm` / `npx` / `prisma` / extra `node` (Process Manager or SSH `pkill`).
+2. Kill leftover `npm` / `npx` / `prisma` / extra `node` (Process Manager or SSH `pkill -u "$USER" -f 'node|npm|prisma'` carefully).
 3. Confirm Number Of Processes is well below the cap and RAM is not pinned at 2G.
 4. Run **one** Deploy. After `Deploy finished.`, Start App if it is still stopped, or rely on `tmp/restart.txt`.
 

@@ -130,22 +130,41 @@ jobs:
             exit 1
           fi
 
-          npm install --omit=dev
+          # Keep process/thread use low — cPanel NPROC kills npm with
+          # "pthread_create: Resource temporarily unavailable" (exit 134).
+          export npm_config_jobs=1
+          export npm_config_maxsockets=1
+          export UV_THREADPOOL_SIZE=1
+          echo "Running npm install (single-threaded)…"
+          npm install --omit=dev --no-audit --no-fund --prefer-offline --maxsockets=1
+
           # cPanel node_modules is a symlink into nodevenv; file: deps get a broken relative link
           mkdir -p node_modules/@arva
           rm -rf node_modules/@arva/shared
           ln -sfn "${DEPLOY_PATH}/packages/shared" node_modules/@arva/shared
 
           echo "Running prisma generate…"
-          npx prisma generate --schema=apps/api/prisma/schema.prisma
+          # Prefer local prisma binary over npx (fewer forks)
+          if [ -x ./node_modules/.bin/prisma ]; then
+            ./node_modules/.bin/prisma generate --schema=apps/api/prisma/schema.prisma
+          else
+            npx prisma generate --schema=apps/api/prisma/schema.prisma
+          fi
 
           # Migrate can block forever on metadata locks if the Node app is still running.
           # Stop the cPanel Node app before deploy when applying schema changes.
           echo "Running prisma migrate deploy (120s timeout)…"
+          run_migrate() {
+            if [ -x ./node_modules/.bin/prisma ]; then
+              ./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+            else
+              npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+            fi
+          }
           if command -v timeout >/dev/null 2>&1; then
-            timeout 120 npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+            timeout 120 bash -c 'if [ -x ./node_modules/.bin/prisma ]; then ./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma; else npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma; fi'
           else
-            npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
+            run_migrate
           fi
 
           mkdir -p tmp
