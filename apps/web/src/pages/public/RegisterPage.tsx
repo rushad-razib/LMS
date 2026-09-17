@@ -1,9 +1,15 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { RegisterInputSchema } from "@arva/shared";
+import { Field } from "@/components/Field";
 import { PasswordField } from "@/components/PasswordField";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -11,22 +17,41 @@ export function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setPending(true);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+
+    const parsed = parseWithSchema(RegisterInputSchema, {
+      fullName,
+      email,
+      password,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setPending(false);
+      return;
+    }
+
     try {
-      const user = await register(fullName, email, password);
+      const user = await register(
+        parsed.data.fullName,
+        parsed.data.email,
+        parsed.data.password,
+      );
       if (!user.canAccessStudentPortal) {
         navigate("/verify-email", { replace: true });
         return;
       }
       navigate("/student", { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Registration failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Registration failed");
     } finally {
       setPending(false);
     }
@@ -36,35 +61,29 @@ export function RegisterPage() {
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="font-display text-3xl font-bold">Register</h1>
       <p className="mt-2 text-ink-muted">Create a student account to buy and join courses.</p>
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Full name</span>
+      <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">
+        <Field label="Full name" error={fieldErrors.fullName}>
           <input
             className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 outline-none ring-accent focus:ring-2"
             value={fullName}
-            required
-            minLength={2}
             onChange={(e) => setFullName(e.target.value)}
           />
-        </label>
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium">Email</span>
+        </Field>
+        <Field label="Email" error={fieldErrors.email}>
           <input
             type="email"
             className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 outline-none ring-accent focus:ring-2"
             value={email}
-            required
             onChange={(e) => setEmail(e.target.value)}
           />
-        </label>
+        </Field>
         <PasswordField
           label="Password"
           value={password}
           onValueChange={setPassword}
-          required
-          minLength={8}
+          error={fieldErrors.password}
         />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
         <button
           type="submit"
           disabled={pending}

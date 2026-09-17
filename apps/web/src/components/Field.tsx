@@ -3,14 +3,16 @@ import type { ReactNode } from "react";
 type FieldProps = {
   label: string;
   className?: string;
+  error?: string;
   children: ReactNode;
 };
 
-export function Field({ label, className, children }: FieldProps) {
+export function Field({ label, className, error, children }: FieldProps) {
   return (
     <label className={["grid gap-1 text-sm", className].filter(Boolean).join(" ")}>
       <span className="font-medium text-ink-muted">{label}</span>
       {children}
+      {error ? <span className="text-xs text-red-400">{error}</span> : null}
     </label>
   );
 }

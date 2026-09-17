@@ -1,9 +1,15 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { LoginInputSchema } from "@arva/shared";
+import { Field } from "@/components/Field";
 import { PasswordField } from "@/components/PasswordField";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 
 function portalForRole(role: string) {
   if (role === "ADMIN") return "/admin";
@@ -19,22 +25,33 @@ export function LoginPage() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setPending(true);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+
+    const parsed = parseWithSchema(LoginInputSchema, { email, password });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setPending(false);
+      return;
+    }
+
     try {
-      const user = await login(email, password);
+      const user = await login(parsed.data.email, parsed.data.password);
       if (user.role === "STUDENT" && !user.canAccessStudentPortal) {
         navigate("/verify-email", { replace: true });
         return;
       }
       navigate(from || portalForRole(user.role), { replace: true });
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Login failed");
     } finally {
       setPending(false);
     }
@@ -44,19 +61,22 @@ export function LoginPage() {
     <div className="mx-auto max-w-md px-4 py-16">
       <h1 className="font-display text-3xl font-bold">Login</h1>
       <p className="mt-2 text-ink-muted">Sign in to your AR Visionary Academy account.</p>
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        <label className="block text-sm">
-          <span className="mb-1 block font-medium text-ink">Email</span>
+      <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">
+        <Field label="Email" error={fieldErrors.email}>
           <input
             type="email"
             className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-ink outline-none ring-accent focus:ring-2"
             value={email}
-            required
             onChange={(e) => setEmail(e.target.value)}
           />
-        </label>
-        <PasswordField label="Password" value={password} onValueChange={setPassword} required />
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
+        </Field>
+        <PasswordField
+          label="Password"
+          value={password}
+          onValueChange={setPassword}
+          error={fieldErrors.password}
+        />
+        {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
         <button
           type="submit"
           disabled={pending}

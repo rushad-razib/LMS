@@ -1,5 +1,11 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { UpdateTeacherProfileInputSchema } from "@arva/shared";
 import { api, ApiError, type TeacherProfile } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { Field } from "@/components/Field";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -8,7 +14,9 @@ export function TeacherProfilePage() {
   const { user, refreshMe } = useAuth();
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [fullName, setFullName] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +28,7 @@ export function TeacherProfilePage() {
         setFullName(r.profile.fullName);
       })
       .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "Failed to load"),
+        setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
       )
       .finally(() => setLoading(false));
   }, []);
@@ -28,14 +36,26 @@ export function TeacherProfilePage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+
+    const parsed = parseWithSchema(UpdateTeacherProfileInputSchema, {
+      fullName: fullName.trim(),
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setSaving(false);
+      return;
+    }
+
     try {
-      const res = await api.updateTeacherProfile({ fullName: fullName.trim() });
+      const res = await api.updateTeacherProfile(parsed.data);
       setProfile(res.profile);
       await refreshMe();
       toast.success("Profile updated");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Update failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Update failed");
     } finally {
       setSaving(false);
     }
@@ -50,7 +70,7 @@ export function TeacherProfilePage() {
         <p className="mt-1 text-ink-muted">Your teacher account details.</p>
       </div>
 
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
 
       <div className="rounded-xl border border-border bg-surface-elevated p-6">
         <dl className="space-y-3 text-sm">
@@ -60,16 +80,15 @@ export function TeacherProfilePage() {
           </div>
         </dl>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <Field label="Full name">
+        <form noValidate onSubmit={onSubmit} className="mt-6 space-y-4">
+          <Field label="Full name" error={fieldErrors.fullName}>
             <input
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={fullName}
-              required
-              minLength={2}
               onChange={(e) => setFullName(e.target.value)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

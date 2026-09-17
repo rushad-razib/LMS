@@ -1,31 +1,52 @@
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
+import { UpdateSettingsInputSchema } from "@arva/shared";
 import { api, ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 
 export function AdminSettingsPage() {
   const [required, setRequired] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     api
       .getSettings()
       .then((s) => setRequired(s.emailVerificationRequired))
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Failed to load"))
+      .catch((err) =>
+        setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
+      )
       .finally(() => setLoading(false));
   }, []);
 
   async function save(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+
+    const parsed = parseWithSchema(UpdateSettingsInputSchema, {
+      emailVerificationRequired: required,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      return;
+    }
+
     try {
-      const s = await api.updateSettings(required);
+      const s = await api.updateSettings(parsed.data.emailVerificationRequired);
       setRequired(s.emailVerificationRequired);
       setMessage("Settings saved.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Save failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Save failed");
     }
   }
 
@@ -34,7 +55,9 @@ export function AdminSettingsPage() {
   return (
     <div className="max-w-xl space-y-4">
       <h1 className="font-display text-2xl font-semibold">Website settings</h1>
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
       <form
+        noValidate
         onSubmit={save}
         className="space-y-4 rounded-xl border border-border bg-surface-elevated p-4"
       >
@@ -51,9 +74,14 @@ export function AdminSettingsPage() {
               When on, students must verify email before the student portal. Turn off for
               local development/testing.
             </span>
+            {fieldErrors.emailVerificationRequired ? (
+              <span className="mt-1 block text-xs text-red-400">
+                {fieldErrors.emailVerificationRequired}
+              </span>
+            ) : null}
           </span>
         </label>
-        {error ? <p className="text-sm text-red-400">{error}</p> : null}
+        {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
         {message ? <p className="text-sm text-green-400">{message}</p> : null}
         <button
           type="submit"

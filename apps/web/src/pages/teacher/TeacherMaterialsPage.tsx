@@ -1,7 +1,13 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
+import { UploadMaterialMetaSchema } from "@arva/shared";
 import { api, ApiError, type TeacherMaterial } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
@@ -21,10 +27,12 @@ export function TeacherMaterialsPage() {
   const { id } = useParams();
   const confirm = useConfirm();
   const [materials, setMaterials] = useState<TeacherMaterial[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -35,30 +43,54 @@ export function TeacherMaterialsPage() {
 
   useEffect(() => {
     load().catch((err) =>
-      setError(err instanceof ApiError ? err.message : "Failed to load"),
+      setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
     );
   }, [load]);
 
+  function resetForm() {
+    setTitle("");
+    setFile(null);
+    setFieldErrors({});
+    setFormError(null);
+  }
+
+  function openUpload() {
+    setLoadError(null);
+    resetForm();
+    setModalOpen(true);
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!id || !file) {
-      setError("Choose a file to upload");
+    if (!id) return;
+    setFieldErrors({});
+    setFormError(null);
+
+    if (!file) {
+      setFieldErrors({ file: "Choose a file to upload" });
       return;
     }
+
+    const metaPayload = title.trim() ? { title: title.trim() } : {};
+    const parsed = parseWithSchema(UploadMaterialMetaSchema, metaPayload);
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      return;
+    }
+
     setSaving(true);
-    setError(null);
     try {
       const body = new FormData();
-      if (title.trim()) body.append("title", title.trim());
+      if (parsed.data.title) body.append("title", parsed.data.title);
       body.append("file", file);
       await api.teacherUploadMaterial(id, body);
       toast.success("Material uploaded");
       setModalOpen(false);
-      setTitle("");
-      setFile(null);
+      resetForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Upload failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Upload failed");
     } finally {
       setSaving(false);
     }
@@ -141,14 +173,9 @@ export function TeacherMaterialsPage() {
         title="Materials"
         description="PDFs and images (png/jpg converted to WebP). Images max 2MB, documents max 10MB."
         actionLabel="+ Upload"
-        onAction={() => {
-          setError(null);
-          setTitle("");
-          setFile(null);
-          setModalOpen(true);
-        }}
+        onAction={openUpload}
       />
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
       <DataTable
         data={materials}
         columns={columns}
@@ -158,10 +185,13 @@ export function TeacherMaterialsPage() {
       <Modal
         open={modalOpen}
         title="Upload material"
-        onClose={() => setModalOpen(false)}
+        onClose={() => {
+          setModalOpen(false);
+          resetForm();
+        }}
       >
-        <form onSubmit={onSubmit} className="grid gap-3">
-          <Field label="Title">
+        <form noValidate onSubmit={onSubmit} className="grid gap-3">
+          <Field label="Title" error={fieldErrors.title}>
             <input
               className={inputClass}
               placeholder="Defaults to file name"
@@ -169,14 +199,14 @@ export function TeacherMaterialsPage() {
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="File">
+          <Field label="File" error={fieldErrors.file}>
             <input
               type="file"
-              required
               className={inputClass}
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

@@ -4,11 +4,20 @@ import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { AdminEnrollPaymentMode, AdminPaymentMethod } from "@arva/shared";
 import {
+  AdminEnrollInputSchema,
+  AssignEnrollmentBatchInputSchema,
+} from "@arva/shared";
+import {
   api,
   ApiError,
   type EnrollmentRow,
   type OrderRow,
 } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { DataTable } from "@/components/DataTable";
 import { Field } from "@/components/Field";
@@ -25,7 +34,7 @@ const PAYMENT_METHODS: AdminPaymentMethod[] = [
 export function AdminOrdersPage() {
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [assignOpen, setAssignOpen] = useState<EnrollmentRow | null>(null);
   const [students, setStudents] = useState<
@@ -43,6 +52,10 @@ export function AdminOrdersPage() {
     useState<AdminEnrollPaymentMode>("FULL");
   const [batchId, setBatchId] = useState("");
   const [assignBatchId, setAssignBatchId] = useState("");
+  const [enrollFieldErrors, setEnrollFieldErrors] = useState<FieldErrors>({});
+  const [enrollFormError, setEnrollFormError] = useState<string | null>(null);
+  const [assignFieldErrors, setAssignFieldErrors] = useState<FieldErrors>({});
+  const [assignFormError, setAssignFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -56,12 +69,13 @@ export function AdminOrdersPage() {
 
   useEffect(() => {
     load().catch((err) =>
-      setError(err instanceof ApiError ? err.message : "Failed to load"),
+      setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
     );
   }, [load]);
 
   async function openEnrollModal() {
-    setError(null);
+    setEnrollFieldErrors({});
+    setEnrollFormError(null);
     try {
       const [users, courseList, batchList] = await Promise.all([
         api.adminListUsers(),
@@ -93,6 +107,8 @@ export function AdminOrdersPage() {
   }
 
   async function openAssign(row: EnrollmentRow) {
+    setAssignFieldErrors({});
+    setAssignFormError(null);
     try {
       const batchList = await api.adminListBatches(row.courseId);
       setBatches(
@@ -117,20 +133,30 @@ export function AdminOrdersPage() {
   async function onEnroll(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
+    setEnrollFieldErrors({});
+    setEnrollFormError(null);
+
+    const parsed = parseWithSchema(AdminEnrollInputSchema, {
+      studentId,
+      courseId,
+      paymentMethod,
+      batchId: batchId || null,
+      paymentMode,
+    });
+    if (!parsed.ok) {
+      setEnrollFieldErrors(parsed.fieldErrors);
+      setEnrollFormError(parsed.formError);
+      setSaving(false);
+      return;
+    }
+
     try {
-      await api.adminEnroll({
-        studentId,
-        courseId,
-        paymentMethod,
-        batchId: batchId || null,
-        paymentMode,
-      });
+      await api.adminEnroll(parsed.data);
       setEnrollOpen(false);
       await load();
       toast.success("Student enrolled");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Enroll failed");
+      applyApiFormError(err, setEnrollFieldErrors, setEnrollFormError, "Enroll failed");
     } finally {
       setSaving(false);
     }
@@ -140,16 +166,26 @@ export function AdminOrdersPage() {
     e.preventDefault();
     if (!assignOpen) return;
     setSaving(true);
+    setAssignFieldErrors({});
+    setAssignFormError(null);
+
+    const parsed = parseWithSchema(AssignEnrollmentBatchInputSchema, {
+      batchId: assignBatchId || null,
+    });
+    if (!parsed.ok) {
+      setAssignFieldErrors(parsed.fieldErrors);
+      setAssignFormError(parsed.formError);
+      setSaving(false);
+      return;
+    }
+
     try {
-      await api.adminAssignEnrollmentBatch(
-        assignOpen.id,
-        assignBatchId || null,
-      );
+      await api.adminAssignEnrollmentBatch(assignOpen.id, parsed.data.batchId);
       setAssignOpen(null);
       await load();
       toast.success(assignBatchId ? "Batch assigned" : "Batch cleared");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Assign failed");
+      applyApiFormError(err, setAssignFieldErrors, setAssignFormError, "Assign failed");
     } finally {
       setSaving(false);
     }
@@ -267,7 +303,7 @@ export function AdminOrdersPage() {
         onAction={() => void openEnrollModal()}
       />
 
-      {error ? <p className="text-sm text-red-500">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-500">{loadError}</p> : null}
 
       <section className="space-y-3">
         <h2 className="font-display text-lg font-semibold">Enrollments</h2>
@@ -292,10 +328,9 @@ export function AdminOrdersPage() {
         onClose={() => setEnrollOpen(false)}
         title="Office enroll"
       >
-        <form className="grid gap-3" onSubmit={onEnroll}>
-          <Field label="Student">
+        <form noValidate className="grid gap-3" onSubmit={onEnroll}>
+          <Field label="Student" error={enrollFieldErrors.studentId}>
             <select
-              required
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={studentId}
               onChange={(e) => setStudentId(e.target.value)}
@@ -308,9 +343,8 @@ export function AdminOrdersPage() {
               ))}
             </select>
           </Field>
-          <Field label="Course">
+          <Field label="Course" error={enrollFieldErrors.courseId}>
             <select
-              required
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={courseId}
               onChange={(e) => {
@@ -326,7 +360,7 @@ export function AdminOrdersPage() {
               ))}
             </select>
           </Field>
-          <Field label="Payment mode">
+          <Field label="Payment mode" error={enrollFieldErrors.paymentMode}>
             <select
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={paymentMode}
@@ -339,7 +373,7 @@ export function AdminOrdersPage() {
               <option value="INSTALLMENT_6">6 months installment</option>
             </select>
           </Field>
-          <Field label="Payment method">
+          <Field label="Payment method" error={enrollFieldErrors.paymentMethod}>
             <select
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={paymentMethod}
@@ -360,7 +394,7 @@ export function AdminOrdersPage() {
               1st of each following month (pay by the 10th).
             </p>
           ) : null}
-          <Field label="Batch (optional)">
+          <Field label="Batch (optional)" error={enrollFieldErrors.batchId}>
             <select
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
               value={batchId}
@@ -375,7 +409,9 @@ export function AdminOrdersPage() {
               ))}
             </select>
           </Field>
-          {error ? <p className="text-sm text-red-500">{error}</p> : null}
+          {enrollFormError ? (
+            <p className="text-sm text-red-500">{enrollFormError}</p>
+          ) : null}
           <button
             type="submit"
             disabled={saving}
@@ -392,11 +428,11 @@ export function AdminOrdersPage() {
         title={assignOpen?.batchId ? "Reassign batch" : "Assign batch"}
       >
         {assignOpen ? (
-          <form className="grid gap-3" onSubmit={onAssign}>
+          <form noValidate className="grid gap-3" onSubmit={onAssign}>
             <p className="text-sm text-ink-muted">
               {assignOpen.user.fullName} · {assignOpen.course.title}
             </p>
-            <Field label="Batch">
+            <Field label="Batch" error={assignFieldErrors.batchId}>
               <select
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2"
                 value={assignBatchId}
@@ -412,6 +448,9 @@ export function AdminOrdersPage() {
                   ))}
               </select>
             </Field>
+            {assignFormError ? (
+              <p className="text-sm text-red-500">{assignFormError}</p>
+            ) : null}
             <button
               type="submit"
               disabled={saving}

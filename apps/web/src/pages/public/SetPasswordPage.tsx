@@ -1,26 +1,44 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { SetPasswordInputSchema } from "@arva/shared";
 import { PasswordField } from "@/components/PasswordField";
-import { api, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 
 export function SetPasswordPage() {
   const [params] = useSearchParams();
   const token = params.get("token") ?? "";
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setPending(true);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+    setMessage(null);
+
+    const parsed = parseWithSchema(SetPasswordInputSchema, { token, password });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setPending(false);
+      return;
+    }
+
     try {
-      await api.setPassword(token, password);
+      await api.setPassword(parsed.data.token, parsed.data.password);
       setMessage("Password set. You can log in.");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Could not set password");
+      applyApiFormError(err, setFieldErrors, setFormError, "Could not set password");
     } finally {
       setPending(false);
     }
@@ -33,15 +51,17 @@ export function SetPasswordPage() {
       {!token ? (
         <p className="mt-4 text-sm text-red-600">Missing token.</p>
       ) : (
-        <form onSubmit={onSubmit} className="mt-8 space-y-4">
+        <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">
           <PasswordField
             label="Password"
             value={password}
             onValueChange={setPassword}
-            required
-            minLength={8}
+            error={fieldErrors.password}
           />
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+          {fieldErrors.token ? (
+            <p className="text-sm text-red-600">{fieldErrors.token}</p>
+          ) : null}
+          {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
           {message ? <p className="text-sm text-green-700">{message}</p> : null}
           <button
             type="submit"

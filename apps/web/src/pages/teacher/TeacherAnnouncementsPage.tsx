@@ -1,7 +1,16 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
+import {
+  CreateAnnouncementInputSchema,
+  UpdateAnnouncementInputSchema,
+} from "@arva/shared";
 import { api, ApiError, type TeacherAnnouncement } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
@@ -15,11 +24,13 @@ export function TeacherAnnouncementsPage() {
   const { id } = useParams();
   const confirm = useConfirm();
   const [announcements, setAnnouncements] = useState<TeacherAnnouncement[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -30,7 +41,7 @@ export function TeacherAnnouncementsPage() {
 
   useEffect(() => {
     load().catch((err) =>
-      setError(err instanceof ApiError ? err.message : "Failed to load"),
+      setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
     );
   }, [load]);
 
@@ -38,26 +49,65 @@ export function TeacherAnnouncementsPage() {
     setEditingId(null);
     setTitle("");
     setBody("");
+    setFieldErrors({});
+    setFormError(null);
+  }
+
+  function openCreate() {
+    setLoadError(null);
+    resetForm();
+    setModalOpen(true);
+  }
+
+  function openEdit(announcement: TeacherAnnouncement) {
+    setLoadError(null);
+    setFieldErrors({});
+    setFormError(null);
+    setEditingId(announcement.id);
+    setTitle(announcement.title);
+    setBody(announcement.body);
+    setModalOpen(true);
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!id) return;
+    setFieldErrors({});
+    setFormError(null);
     setSaving(true);
-    setError(null);
+
+    const payload = { title, body };
+
     try {
       if (editingId) {
-        await api.teacherUpdateAnnouncement(id, editingId, { title, body });
+        const parsed = parseWithSchema(UpdateAnnouncementInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.teacherUpdateAnnouncement(id, editingId, parsed.data);
         toast.success("Announcement updated");
       } else {
-        await api.teacherCreateAnnouncement(id, { title, body });
+        const parsed = parseWithSchema(CreateAnnouncementInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.teacherCreateAnnouncement(id, parsed.data);
         toast.success("Announcement posted — students emailed");
       }
       setModalOpen(false);
       resetForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Save failed");
+      applyApiFormError(
+        err,
+        setFieldErrors,
+        setFormError,
+        editingId ? "Update failed" : "Create failed",
+      );
     } finally {
       setSaving(false);
     }
@@ -113,13 +163,7 @@ export function TeacherAnnouncementsPage() {
             <button
               type="button"
               className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
-              onClick={() => {
-                setError(null);
-                setEditingId(row.original.id);
-                setTitle(row.original.title);
-                setBody(row.original.body);
-                setModalOpen(true);
-              }}
+              onClick={() => openEdit(row.original)}
             >
               Edit
             </button>
@@ -143,13 +187,9 @@ export function TeacherAnnouncementsPage() {
         title="Announcements"
         description="Creating an announcement emails every student in this batch."
         actionLabel="+ Post announcement"
-        onAction={() => {
-          setError(null);
-          resetForm();
-          setModalOpen(true);
-        }}
+        onAction={openCreate}
       />
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
       <DataTable
         data={announcements}
         columns={columns}
@@ -164,24 +204,23 @@ export function TeacherAnnouncementsPage() {
           resetForm();
         }}
       >
-        <form onSubmit={onSubmit} className="grid gap-3">
-          <Field label="Title">
+        <form noValidate onSubmit={onSubmit} className="grid gap-3">
+          <Field label="Title" error={fieldErrors.title}>
             <input
               className={inputClass}
-              required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Body">
+          <Field label="Body" error={fieldErrors.body}>
             <textarea
               className={inputClass}
-              required
               rows={6}
               value={body}
               onChange={(e) => setBody(e.target.value)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

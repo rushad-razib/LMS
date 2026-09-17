@@ -3,7 +3,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { UserRole } from "@arva/shared";
+import { AdminCreateUserInputSchema } from "@arva/shared";
 import { api, ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useConfirm } from "@/components/ConfirmProvider";
@@ -50,12 +56,14 @@ export function AdminUsersPage() {
   const confirm = useConfirm();
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<AdminUserRow[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [teacherDelete, setTeacherDelete] = useState<AdminUserRow | null>(null);
   const [otherTeachers, setOtherTeachers] = useState<TeacherOption[]>([]);
@@ -67,7 +75,9 @@ export function AdminUsersPage() {
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err instanceof ApiError ? err.message : "Failed"));
+    load().catch((err) =>
+      setLoadError(err instanceof ApiError ? err.message : "Failed"),
+    );
   }, []);
 
   function resetForm() {
@@ -75,24 +85,37 @@ export function AdminUsersPage() {
     setEmail("");
     setRole("STUDENT");
     setPassword("");
+    setFieldErrors({});
+    setFormError(null);
   }
 
   async function onCreate(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
     setSaving(true);
+
+    const parsed = parseWithSchema(AdminCreateUserInputSchema, {
+      fullName,
+      email,
+      role,
+      password: password || undefined,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setSaving(false);
+      return;
+    }
+
     try {
-      await api.adminCreateUser({
-        fullName,
-        email,
-        role,
-        password: password || undefined,
-      });
+      await api.adminCreateUser(parsed.data);
       resetForm();
       setModalOpen(false);
       await load();
+      toast.success("User created");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Create failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Create failed");
     } finally {
       setSaving(false);
     }
@@ -214,12 +237,13 @@ export function AdminUsersPage() {
         description="Students, teachers, and admins."
         actionLabel="+ Create user"
         onAction={() => {
-          setError(null);
+          setFieldErrors({});
+          setFormError(null);
           setModalOpen(true);
         }}
       />
 
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
 
       <DataTable
         data={users}
@@ -246,27 +270,25 @@ export function AdminUsersPage() {
           resetForm();
         }}
       >
-        <form onSubmit={onCreate} className="grid gap-3">
-          <Field label="Full name">
+        <form noValidate onSubmit={onCreate} className="grid gap-3">
+          <Field label="Full name" error={fieldErrors.fullName}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="e.g. Ayesha Rahman"
               value={fullName}
-              required
               onChange={(e) => setFullName(e.target.value)}
             />
           </Field>
-          <Field label="Email">
+          <Field label="Email" error={fieldErrors.email}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="name@example.com"
               type="email"
               value={email}
-              required
               onChange={(e) => setEmail(e.target.value)}
             />
           </Field>
-          <Field label="Role">
+          <Field label="Role" error={fieldErrors.role}>
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2"
               value={role}
@@ -277,7 +299,7 @@ export function AdminUsersPage() {
               <option value="ADMIN">Admin</option>
             </select>
           </Field>
-          <Field label="Password">
+          <Field label="Password" error={fieldErrors.password}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="Optional — sends set-password email if empty"
@@ -286,6 +308,7 @@ export function AdminUsersPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

@@ -7,6 +7,7 @@ type PasswordFieldProps = Omit<
   label: string;
   value: string;
   onValueChange: (value: string) => void;
+  error?: string;
 };
 
 export function PasswordField({
@@ -14,6 +15,7 @@ export function PasswordField({
   value,
   onValueChange,
   id,
+  error,
   ...inputProps
 }: PasswordFieldProps) {
   const generatedId = useId();
@@ -30,6 +32,7 @@ export function PasswordField({
           type={visible ? "text" : "password"}
           value={value}
           onChange={(e) => onValueChange(e.target.value)}
+          aria-invalid={error ? true : undefined}
           className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 pr-11 text-ink outline-none ring-accent focus:ring-2"
         />
         <button
@@ -42,6 +45,7 @@ export function PasswordField({
           {visible ? <EyeOffIcon /> : <EyeIcon />}
         </button>
       </span>
+      {error ? <span className="mt-1 block text-xs text-red-400">{error}</span> : null}
     </label>
   );
 }

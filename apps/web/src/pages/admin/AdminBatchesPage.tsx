@@ -3,7 +3,16 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import type { BatchDeliveryMode, BatchStatus } from "@arva/shared";
+import {
+  CreateBatchInputSchema,
+  UpdateBatchInputSchema,
+} from "@arva/shared";
 import { api, type Batch, type Course, ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
@@ -26,7 +35,7 @@ export function AdminBatchesPage() {
   const [teachers, setTeachers] = useState<{ id: string; fullName: string; email: string }[]>(
     [],
   );
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [courseId, setCourseId] = useState("");
@@ -38,6 +47,8 @@ export function AdminBatchesPage() {
   const [seatCapacity, setSeatCapacity] = useState(30);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -52,7 +63,9 @@ export function AdminBatchesPage() {
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err instanceof ApiError ? err.message : "Failed"));
+    load().catch((err) =>
+      setLoadError(err instanceof ApiError ? err.message : "Failed"),
+    );
   }, []);
 
   function resetForm() {
@@ -66,16 +79,20 @@ export function AdminBatchesPage() {
     setSeatCapacity(30);
     setStartDate("");
     setEndDate("");
+    setFieldErrors({});
+    setFormError(null);
   }
 
   function openCreate() {
-    setError(null);
+    setLoadError(null);
     resetForm();
     setModalOpen(true);
   }
 
   function openEdit(batch: Batch) {
-    setError(null);
+    setLoadError(null);
+    setFieldErrors({});
+    setFormError(null);
     setEditingId(batch.id);
     setCourseId(batch.courseId);
     setName(batch.name);
@@ -91,7 +108,8 @@ export function AdminBatchesPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
     setSaving(true);
     const payload = {
       name,
@@ -103,22 +121,37 @@ export function AdminBatchesPage() {
       startDate: startDate || null,
       endDate: endDate || null,
     };
+
     try {
       if (editingId) {
-        await api.adminUpdateBatch(editingId, payload);
+        const parsed = parseWithSchema(UpdateBatchInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.adminUpdateBatch(editingId, parsed.data);
         toast.success("Batch updated");
       } else {
-        await api.adminCreateBatch({
-          courseId,
-          ...payload,
-        });
+        const parsed = parseWithSchema(CreateBatchInputSchema, { courseId, ...payload });
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.adminCreateBatch(parsed.data);
         toast.success("Batch created");
       }
       resetForm();
       setModalOpen(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : editingId ? "Update failed" : "Create failed");
+      applyApiFormError(
+        err,
+        setFieldErrors,
+        setFormError,
+        editingId ? "Update failed" : "Create failed",
+      );
     } finally {
       setSaving(false);
     }
@@ -221,7 +254,7 @@ export function AdminBatchesPage() {
         onAction={openCreate}
       />
 
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
 
       <DataTable
         data={batches}
@@ -238,7 +271,7 @@ export function AdminBatchesPage() {
           resetForm();
         }}
       >
-        <form onSubmit={onSubmit} className="grid gap-3">
+        <form noValidate onSubmit={onSubmit} className="grid gap-3">
           {editingId ? (
             <Field label="Course">
               <p className="rounded-lg border border-border bg-surface px-3 py-2 text-ink">
@@ -246,11 +279,10 @@ export function AdminBatchesPage() {
               </p>
             </Field>
           ) : (
-            <Field label="Course">
+            <Field label="Course" error={fieldErrors.courseId}>
               <select
                 className="rounded-lg border border-border bg-surface px-3 py-2"
                 value={courseId}
-                required
                 onChange={(e) => setCourseId(e.target.value)}
               >
                 <option value="">Select course</option>
@@ -262,17 +294,16 @@ export function AdminBatchesPage() {
               </select>
             </Field>
           )}
-          <Field label="Batch name">
+          <Field label="Batch name" error={fieldErrors.name}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="e.g. Evening A"
               value={name}
-              required
               onChange={(e) => setName(e.target.value)}
             />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Delivery mode">
+            <Field label="Delivery mode" error={fieldErrors.deliveryMode}>
               <select
                 className="rounded-lg border border-border bg-surface px-3 py-2"
                 value={deliveryMode}
@@ -285,19 +316,18 @@ export function AdminBatchesPage() {
                 ))}
               </select>
             </Field>
-            <Field label="Seat capacity">
+            <Field label="Seat capacity" error={fieldErrors.seatCapacity}>
               <input
                 type="number"
                 min={1}
                 className="rounded-lg border border-border bg-surface px-3 py-2"
                 value={seatCapacity}
-                required
                 onChange={(e) => setSeatCapacity(Number(e.target.value))}
               />
             </Field>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Start date">
+            <Field label="Start date" error={fieldErrors.startDate}>
               <input
                 type="date"
                 className="rounded-lg border border-border bg-surface px-3 py-2"
@@ -305,7 +335,7 @@ export function AdminBatchesPage() {
                 onChange={(e) => setStartDate(e.target.value)}
               />
             </Field>
-            <Field label="End date">
+            <Field label="End date" error={fieldErrors.endDate}>
               <input
                 type="date"
                 className="rounded-lg border border-border bg-surface px-3 py-2"
@@ -314,7 +344,7 @@ export function AdminBatchesPage() {
               />
             </Field>
           </div>
-          <Field label="Status">
+          <Field label="Status" error={fieldErrors.status}>
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2"
               value={status}
@@ -327,7 +357,7 @@ export function AdminBatchesPage() {
               ))}
             </select>
           </Field>
-          <Field label="Teacher">
+          <Field label="Teacher" error={fieldErrors.teacherId}>
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2"
               value={teacherId}
@@ -341,7 +371,7 @@ export function AdminBatchesPage() {
               ))}
             </select>
           </Field>
-          <Field label="Schedule summary">
+          <Field label="Schedule summary" error={fieldErrors.scheduleSummary}>
             <textarea
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="Optional, e.g. Sun/Tue 7pm"
@@ -350,6 +380,7 @@ export function AdminBatchesPage() {
               onChange={(e) => setScheduleSummary(e.target.value)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

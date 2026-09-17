@@ -2,8 +2,17 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { CourseStatus } from "@arva/shared";
+import {
+  CreateCourseInputSchema,
+  UpdateCourseInputSchema,
+  type CourseStatus,
+} from "@arva/shared";
 import { api, type Course, ApiError } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
@@ -16,7 +25,7 @@ const statuses: CourseStatus[] = ["DRAFT", "PUBLISHED", "ARCHIVED"];
 export function AdminCoursesPage() {
   const confirm = useConfirm();
   const [courses, setCourses] = useState<Course[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -28,6 +37,8 @@ export function AdminCoursesPage() {
   const [status, setStatus] = useState<CourseStatus>("DRAFT");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -36,7 +47,9 @@ export function AdminCoursesPage() {
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err instanceof ApiError ? err.message : "Failed"));
+    load().catch((err) =>
+      setLoadError(err instanceof ApiError ? err.message : "Failed"),
+    );
   }, []);
 
   function resetForm() {
@@ -50,16 +63,20 @@ export function AdminCoursesPage() {
     setStatus("DRAFT");
     setCoverUrl(null);
     setCoverFile(null);
+    setFieldErrors({});
+    setFormError(null);
   }
 
   function openCreate() {
-    setError(null);
+    setLoadError(null);
     resetForm();
     setModalOpen(true);
   }
 
   function openEdit(course: Course) {
-    setError(null);
+    setLoadError(null);
+    setFieldErrors({});
+    setFormError(null);
     setEditingId(course.id);
     setTitle(course.title);
     setOverview(course.overview);
@@ -75,8 +92,10 @@ export function AdminCoursesPage() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
     setSaving(true);
+
     const payload = {
       title,
       overview,
@@ -86,13 +105,26 @@ export function AdminCoursesPage() {
       faqText: faqText || null,
       status,
     };
+
     try {
       let courseId = editingId;
       if (editingId) {
-        await api.adminUpdateCourse(editingId, payload);
+        const parsed = parseWithSchema(UpdateCourseInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.adminUpdateCourse(editingId, parsed.data);
         toast.success("Course updated");
       } else {
-        const created = await api.adminCreateCourse(payload);
+        const parsed = parseWithSchema(CreateCourseInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        const created = await api.adminCreateCourse(parsed.data);
         courseId = created.course.id;
         toast.success("Course created");
       }
@@ -104,7 +136,12 @@ export function AdminCoursesPage() {
       setModalOpen(false);
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : editingId ? "Update failed" : "Create failed");
+      applyApiFormError(
+        err,
+        setFieldErrors,
+        setFormError,
+        editingId ? "Update failed" : "Create failed",
+      );
     } finally {
       setSaving(false);
     }
@@ -195,7 +232,7 @@ export function AdminCoursesPage() {
         onAction={openCreate}
       />
 
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
 
       <DataTable
         data={courses}
@@ -213,37 +250,34 @@ export function AdminCoursesPage() {
           resetForm();
         }}
       >
-        <form onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2">
-          <Field label="Title">
+        <form noValidate onSubmit={onSubmit} className="grid gap-3 md:grid-cols-2">
+          <Field label="Title" error={fieldErrors.title}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="e.g. Web Development"
               value={title}
-              required
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Duration">
+          <Field label="Duration" error={fieldErrors.duration}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="e.g. 3 months"
               value={duration}
-              required
               onChange={(e) => setDuration(e.target.value)}
             />
           </Field>
-          <Field label="Price (BDT)">
+          <Field label="Price (BDT)" error={fieldErrors.priceBdt}>
             <input
               type="number"
               min={0}
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="0"
               value={priceBdt}
-              required
               onChange={(e) => setPriceBdt(Number(e.target.value))}
             />
           </Field>
-          <Field label="Status">
+          <Field label="Status" error={fieldErrors.status}>
             <select
               className="rounded-lg border border-border bg-surface px-3 py-2"
               value={status}
@@ -256,26 +290,29 @@ export function AdminCoursesPage() {
               ))}
             </select>
           </Field>
-          <Field label="Overview" className="md:col-span-2">
+          <Field label="Overview" className="md:col-span-2" error={fieldErrors.overview}>
             <textarea
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="Short public description"
               rows={3}
-              required
               value={overview}
               onChange={(e) => setOverview(e.target.value)}
             />
           </Field>
-          <Field label="Outline / syllabus" className="md:col-span-2">
+          <Field
+            label="Outline / syllabus"
+            className="md:col-span-2"
+            error={fieldErrors.outlineText}
+          >
             <textarea
               className="rounded-lg border border-border bg-surface px-3 py-2"
-              placeholder="Optional syllabus bullets"
+              placeholder="One topic per line (shown as ticks on the public page)"
               rows={3}
               value={outlineText}
               onChange={(e) => setOutlineText(e.target.value)}
             />
           </Field>
-          <Field label="FAQ" className="md:col-span-2">
+          <Field label="FAQ" className="md:col-span-2" error={fieldErrors.faqText}>
             <textarea
               className="rounded-lg border border-border bg-surface px-3 py-2"
               placeholder="Optional questions and answers"
@@ -284,7 +321,11 @@ export function AdminCoursesPage() {
               onChange={(e) => setFaqText(e.target.value)}
             />
           </Field>
-          <Field label="Cover image" className="md:col-span-2">
+          <Field
+            label="Cover image"
+            className="mb-6 md:col-span-2"
+            error={fieldErrors.coverImageKey ?? fieldErrors.file}
+          >
             {coverUrl ? (
               <img
                 src={coverUrl}
@@ -320,6 +361,9 @@ export function AdminCoursesPage() {
               </button>
             ) : null}
           </Field>
+          {formError ? (
+            <p className="text-sm text-red-400 md:col-span-2">{formError}</p>
+          ) : null}
           <button
             type="submit"
             disabled={saving}

@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import type { AdminPaymentMethod } from "@arva/shared";
+import { MarkInstallmentPaidInputSchema, type AdminPaymentMethod } from "@arva/shared";
 import { api, ApiError, type AdminStudentDetail } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { PageHeader } from "@/components/PageHeader";
 
@@ -29,6 +34,8 @@ export function AdminStudentDetailPage() {
   const [payMethodByInst, setPayMethodByInst] = useState<Record<string, AdminPaymentMethod>>(
     {},
   );
+  const [payFieldErrors, setPayFieldErrors] = useState<FieldErrors>({});
+  const [payFormError, setPayFormError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -58,16 +65,43 @@ export function AdminStudentDetailPage() {
   }
 
   async function markPaid(installmentId: string) {
+    setPayFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[installmentId];
+      return next;
+    });
+    setPayFormError(null);
+
+    const paymentMethod = payMethodByInst[installmentId] ?? "CASH";
+    const parsed = parseWithSchema(MarkInstallmentPaidInputSchema, { paymentMethod });
+    if (!parsed.ok) {
+      const message =
+        parsed.fieldErrors.paymentMethod ?? parsed.formError ?? "Invalid payment method";
+      setPayFieldErrors((prev) => ({ ...prev, [installmentId]: message }));
+      return;
+    }
+
     setBusy(installmentId);
     try {
-      await api.adminMarkInstallmentPaid(
-        installmentId,
-        payMethodByInst[installmentId] ?? "CASH",
-      );
+      await api.adminMarkInstallmentPaid(installmentId, parsed.data.paymentMethod);
       await load();
       toast.success("Installment marked paid");
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : "Payment failed");
+      if (err instanceof ApiError && err.code === "VALIDATION_ERROR") {
+        applyApiFormError(
+          err,
+          (fields) => {
+            const message = fields.paymentMethod;
+            if (message) {
+              setPayFieldErrors((prev) => ({ ...prev, [installmentId]: message }));
+            }
+          },
+          setPayFormError,
+          "Payment failed",
+        );
+      } else {
+        toast.error(err instanceof ApiError ? err.message : "Payment failed");
+      }
     } finally {
       setBusy(null);
     }
@@ -117,6 +151,8 @@ export function AdminStudentDetailPage() {
           </div>
         </dl>
       </div>
+
+      {payFormError ? <p className="text-sm text-red-400">{payFormError}</p> : null}
 
       <div className="space-y-4">
         <h2 className="font-display text-lg font-semibold">Courses enrolled</h2>
@@ -184,31 +220,41 @@ export function AdminStudentDetailPage() {
                                 Paid {formatDate(inst.paidAt)}
                               </span>
                             ) : (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <select
-                                  className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
-                                  value={payMethodByInst[inst.id] ?? "CASH"}
-                                  onChange={(ev) =>
-                                    setPayMethodByInst((prev) => ({
-                                      ...prev,
-                                      [inst.id]: ev.target.value as AdminPaymentMethod,
-                                    }))
-                                  }
-                                >
-                                  {PAYMENT_METHODS.map((m) => (
-                                    <option key={m} value={m}>
-                                      {m}
-                                    </option>
-                                  ))}
-                                </select>
-                                <button
-                                  type="button"
-                                  disabled={busy === inst.id}
-                                  className="rounded-lg bg-accent px-2 py-1 text-xs font-semibold text-accent-fg disabled:opacity-60"
-                                  onClick={() => markPaid(inst.id)}
-                                >
-                                  Mark paid
-                                </button>
+                              <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <select
+                                    className="rounded-lg border border-border bg-surface px-2 py-1 text-xs"
+                                    value={payMethodByInst[inst.id] ?? "CASH"}
+                                    onChange={(ev) => {
+                                      setPayFieldErrors((prev) => {
+                                        const next = { ...prev };
+                                        delete next[inst.id];
+                                        return next;
+                                      });
+                                      setPayMethodByInst((prev) => ({
+                                        ...prev,
+                                        [inst.id]: ev.target.value as AdminPaymentMethod,
+                                      }));
+                                    }}
+                                  >
+                                    {PAYMENT_METHODS.map((m) => (
+                                      <option key={m} value={m}>
+                                        {m}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    disabled={busy === inst.id}
+                                    className="rounded-lg bg-accent px-2 py-1 text-xs font-semibold text-accent-fg disabled:opacity-60"
+                                    onClick={() => markPaid(inst.id)}
+                                  >
+                                    Mark paid
+                                  </button>
+                                </div>
+                                {payFieldErrors[inst.id] ? (
+                                  <p className="text-xs text-red-400">{payFieldErrors[inst.id]}</p>
+                                ) : null}
                               </div>
                             )}
                           </td>

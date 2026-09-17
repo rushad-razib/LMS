@@ -1,5 +1,11 @@
 import { type FormEvent, useEffect, useState } from "react";
+import { UpdateStudentProfileInputSchema } from "@arva/shared";
 import { api, ApiError, type StudentProfile } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { Field } from "@/components/Field";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -8,7 +14,9 @@ export function StudentProfilePage() {
   const { user } = useAuth();
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [phone, setPhone] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +28,7 @@ export function StudentProfilePage() {
         setPhone(r.profile.phone ?? "");
       })
       .catch((err) =>
-        setError(err instanceof ApiError ? err.message : "Failed to load"),
+        setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
       )
       .finally(() => setLoading(false));
   }, []);
@@ -28,15 +36,25 @@ export function StudentProfilePage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setSaving(true);
-    setError(null);
+    setFieldErrors({});
+    setFormError(null);
+
+    const parsed = parseWithSchema(UpdateStudentProfileInputSchema, {
+      phone: phone.trim() || null,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fieldErrors);
+      setFormError(parsed.formError);
+      setSaving(false);
+      return;
+    }
+
     try {
-      const res = await api.updateStudentProfile({
-        phone: phone.trim() || null,
-      });
+      const res = await api.updateStudentProfile(parsed.data);
       setProfile(res.profile);
       toast.success("Profile updated");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Update failed");
+      applyApiFormError(err, setFieldErrors, setFormError, "Update failed");
     } finally {
       setSaving(false);
     }
@@ -51,11 +69,11 @@ export function StudentProfilePage() {
         <p className="mt-1 text-ink-muted">Your student account details.</p>
       </div>
 
-      {error && (
+      {loadError ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
+          {loadError}
         </p>
-      )}
+      ) : null}
 
       <div className="rounded-xl border border-border bg-surface-elevated p-6">
         <dl className="space-y-3 text-sm">
@@ -69,8 +87,8 @@ export function StudentProfilePage() {
           </div>
         </dl>
 
-        <form onSubmit={onSubmit} className="mt-6 space-y-4">
-          <Field label="Phone">
+        <form noValidate onSubmit={onSubmit} className="mt-6 space-y-4">
+          <Field label="Phone" error={fieldErrors.phone}>
             <input
               id="phone"
               className="w-full rounded-lg border border-border bg-surface px-3 py-2"
@@ -79,6 +97,7 @@ export function StudentProfilePage() {
               placeholder="+8801…"
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

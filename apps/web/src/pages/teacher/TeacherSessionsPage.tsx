@@ -2,11 +2,15 @@ import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react
 import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  api,
-  ApiError,
-  type TeacherLiveSession,
-  type TeacherSessionInput,
-} from "@/lib/api";
+  CreateLiveSessionInputSchema,
+  UpdateLiveSessionInputSchema,
+} from "@arva/shared";
+import { api, ApiError, type TeacherLiveSession } from "@/lib/api";
+import {
+  applyApiFormError,
+  parseWithSchema,
+  type FieldErrors,
+} from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
@@ -31,7 +35,7 @@ export function TeacherSessionsPage() {
   const { id } = useParams();
   const confirm = useConfirm();
   const [sessions, setSessions] = useState<TeacherLiveSession[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -39,6 +43,8 @@ export function TeacherSessionsPage() {
   const [endsAt, setEndsAt] = useState("");
   const [meetingUrl, setMeetingUrl] = useState("");
   const [notes, setNotes] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -49,7 +55,7 @@ export function TeacherSessionsPage() {
 
   useEffect(() => {
     load().catch((err) =>
-      setError(err instanceof ApiError ? err.message : "Failed to load"),
+      setLoadError(err instanceof ApiError ? err.message : "Failed to load"),
     );
   }, [load]);
 
@@ -60,16 +66,20 @@ export function TeacherSessionsPage() {
     setEndsAt("");
     setMeetingUrl("");
     setNotes("");
+    setFieldErrors({});
+    setFormError(null);
   }
 
   function openCreate() {
-    setError(null);
+    setLoadError(null);
     resetForm();
     setModalOpen(true);
   }
 
   function openEdit(session: TeacherLiveSession) {
-    setError(null);
+    setLoadError(null);
+    setFieldErrors({});
+    setFormError(null);
     setEditingId(session.id);
     setTitle(session.title);
     setStartsAt(toDateTimeLocal(session.startsAt));
@@ -82,28 +92,48 @@ export function TeacherSessionsPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!id) return;
+    setFieldErrors({});
+    setFormError(null);
     setSaving(true);
-    setError(null);
-    const body: TeacherSessionInput = {
+
+    const payload = {
       title,
       startsAt: fromDateTimeLocal(startsAt),
       endsAt: endsAt ? fromDateTimeLocal(endsAt) : null,
       meetingUrl,
       notes: notes.trim() || null,
     };
+
     try {
       if (editingId) {
-        await api.teacherUpdateSession(id, editingId, body);
+        const parsed = parseWithSchema(UpdateLiveSessionInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.teacherUpdateSession(id, editingId, parsed.data);
         toast.success("Session updated");
       } else {
-        await api.teacherCreateSession(id, body);
+        const parsed = parseWithSchema(CreateLiveSessionInputSchema, payload);
+        if (!parsed.ok) {
+          setFieldErrors(parsed.fieldErrors);
+          setFormError(parsed.formError);
+          return;
+        }
+        await api.teacherCreateSession(id, parsed.data);
         toast.success("Session created");
       }
       setModalOpen(false);
       resetForm();
       await load();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Save failed");
+      applyApiFormError(
+        err,
+        setFieldErrors,
+        setFormError,
+        editingId ? "Update failed" : "Create failed",
+      );
     } finally {
       setSaving(false);
     }
@@ -202,7 +232,7 @@ export function TeacherSessionsPage() {
         actionLabel="+ Add session"
         onAction={openCreate}
       />
-      {error ? <p className="text-sm text-red-400">{error}</p> : null}
+      {loadError ? <p className="text-sm text-red-400">{loadError}</p> : null}
       <DataTable
         data={sessions}
         columns={columns}
@@ -217,25 +247,23 @@ export function TeacherSessionsPage() {
           resetForm();
         }}
       >
-        <form onSubmit={onSubmit} className="grid gap-3">
-          <Field label="Title">
+        <form noValidate onSubmit={onSubmit} className="grid gap-3">
+          <Field label="Title" error={fieldErrors.title}>
             <input
               className={inputClass}
-              required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
-          <Field label="Starts">
+          <Field label="Starts" error={fieldErrors.startsAt}>
             <input
               type="datetime-local"
               className={inputClass}
-              required
               value={startsAt}
               onChange={(e) => setStartsAt(e.target.value)}
             />
           </Field>
-          <Field label="Ends (optional)">
+          <Field label="Ends (optional)" error={fieldErrors.endsAt}>
             <input
               type="datetime-local"
               className={inputClass}
@@ -243,16 +271,15 @@ export function TeacherSessionsPage() {
               onChange={(e) => setEndsAt(e.target.value)}
             />
           </Field>
-          <Field label="Meeting URL">
+          <Field label="Meeting URL" error={fieldErrors.meetingUrl}>
             <input
               className={inputClass}
-              required
               placeholder="https://meet.google.com/…"
               value={meetingUrl}
               onChange={(e) => setMeetingUrl(e.target.value)}
             />
           </Field>
-          <Field label="Notes">
+          <Field label="Notes" error={fieldErrors.notes}>
             <textarea
               className={inputClass}
               rows={3}
@@ -260,6 +287,7 @@ export function TeacherSessionsPage() {
               onChange={(e) => setNotes(e.target.value)}
             />
           </Field>
+          {formError ? <p className="text-sm text-red-400">{formError}</p> : null}
           <button
             type="submit"
             disabled={saving}

@@ -108,9 +108,20 @@ export function CourseDetailPage() {
       {course.outlineText ? (
         <section className="mt-8 space-y-3">
           <h2 className="font-display text-xl font-semibold">Syllabus / outline</h2>
-          <pre className="whitespace-pre-wrap rounded-xl border border-border bg-surface-elevated p-4 font-sans text-sm text-ink-muted">
-            {course.outlineText}
-          </pre>
+          <ul className="space-y-2">
+            {course.outlineText
+              .split(/\r?\n/)
+              .map((line) => line.trim().replace(/^[-•*]\s+/, ""))
+              .filter(Boolean)
+              .map((line, i) => (
+                <li key={`${i}-${line}`} className="flex gap-2 text-ink-muted">
+                  <span className="mt-0.5 shrink-0 font-semibold text-accent" aria-hidden>
+                    ✓
+                  </span>
+                  <span>{line}</span>
+                </li>
+              ))}
+          </ul>
         </section>
       ) : null}
 
