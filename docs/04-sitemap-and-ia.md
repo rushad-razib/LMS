@@ -13,7 +13,7 @@ Home · About · Courses · Trainers · Blog · Contact · Login · Register
 
 ## Student (`STUDENT`)
 
-Canonical routes: [modules/student-portal.md](modules/student-portal.md). Global notices (`/student/notices`) defer to Phase 6 Admin CMS.
+Canonical routes: [modules/student-portal.md](modules/student-portal.md). Global notices at `/student/notices` (Phase 6).
 
 | Route | Page |
 |-------|------|
@@ -52,6 +52,7 @@ Canonical routes: [modules/student-portal.md](modules/student-portal.md). Global
 | `/admin/notices` | Global notices |
 | `/admin/gallery` | Gallery |
 | `/admin/blog` | Blog |
+| `/admin/leads` | Contact leads |
 | `/admin/settings` | Settings |
 
 ## Hero CTAs

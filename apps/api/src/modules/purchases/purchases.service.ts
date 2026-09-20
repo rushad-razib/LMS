@@ -696,6 +696,19 @@ export async function getAdminStudentDetail(userId: string) {
       email: user.email,
       status: user.status,
       phone: user.studentProfile?.phone ?? null,
+      whatsappPhone: user.studentProfile?.whatsappPhone ?? null,
+      dateOfBirth: user.studentProfile?.dateOfBirth
+        ? user.studentProfile.dateOfBirth.toISOString().slice(0, 10)
+        : null,
+      gender: user.studentProfile?.gender ?? null,
+      nidNumber: user.studentProfile?.nidNumber ?? null,
+      addressLine: user.studentProfile?.addressLine ?? null,
+      city: user.studentProfile?.city ?? null,
+      district: user.studentProfile?.district ?? null,
+      guardianName: user.studentProfile?.guardianName ?? null,
+      guardianPhone: user.studentProfile?.guardianPhone ?? null,
+      educationLevel: user.studentProfile?.educationLevel ?? null,
+      occupation: user.studentProfile?.occupation ?? null,
       emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
       createdAt: user.createdAt.toISOString(),
     },
@@ -826,13 +839,31 @@ export async function adminListEnrollments(unassignedOnly = false) {
 }
 
 export async function adminDashboardCounts() {
-  const [students, orders, batches, unassignedEnrollments] = await Promise.all([
+  const [
+    students,
+    orders,
+    batches,
+    unassignedEnrollments,
+    unverifiedStudents,
+    unreadLeads,
+  ] = await Promise.all([
     prisma.user.count({ where: { role: "STUDENT" } }),
     prisma.order.count(),
     prisma.batch.count(),
     prisma.enrollment.count({ where: { status: "ACTIVE", batchId: null } }),
+    prisma.user.count({
+      where: { role: "STUDENT", emailVerifiedAt: null },
+    }),
+    prisma.lead.count({ where: { readAt: null } }),
   ]);
-  return { students, orders, batches, unassignedEnrollments };
+  return {
+    students,
+    orders,
+    batches,
+    unassignedEnrollments,
+    unverifiedStudents,
+    unreadLeads,
+  };
 }
 
 export async function listStudentOrders(userId: string) {

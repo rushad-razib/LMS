@@ -6,6 +6,7 @@ const links = [
   { to: "/student", label: "Dashboard", end: true },
   { to: "/student/courses", label: "My Courses" },
   { to: "/student/orders", label: "Orders" },
+  { to: "/student/notices", label: "Notices" },
   { to: "/student/profile", label: "Profile" },
 ];
 

@@ -93,7 +93,7 @@ export async function registerStudent(input: RegisterInput) {
       role: "STUDENT",
       status: verifiedNow ? "ACTIVE" : "PENDING_VERIFICATION",
       emailVerifiedAt: verifiedNow ? new Date() : null,
-      studentProfile: { create: {} },
+      studentProfile: { create: { phone: input.phone } },
     },
   });
 
@@ -319,7 +319,13 @@ export async function adminCreateUser(input: AdminCreateUserInput) {
           : "ACTIVE",
       emailVerifiedAt:
         !isStudent || !settings.emailVerificationRequired ? new Date() : null,
-      studentProfile: isStudent ? { create: {} } : undefined,
+      studentProfile: isStudent
+        ? { create: { phone: input.phone ?? null } }
+        : undefined,
+      teacherProfile:
+        input.role === "TEACHER"
+          ? { create: { phone: input.phone ?? null } }
+          : undefined,
     },
   });
 

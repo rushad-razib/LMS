@@ -17,6 +17,7 @@ export function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -31,6 +32,7 @@ export function RegisterPage() {
       fullName,
       email,
       password,
+      phone,
     });
     if (!parsed.ok) {
       setFieldErrors(parsed.fieldErrors);
@@ -44,6 +46,7 @@ export function RegisterPage() {
         parsed.data.fullName,
         parsed.data.email,
         parsed.data.password,
+        parsed.data.phone,
       );
       if (!user.canAccessStudentPortal) {
         navigate("/verify-email", { replace: true });
@@ -77,25 +80,35 @@ export function RegisterPage() {
             onChange={(e) => setEmail(e.target.value)}
           />
         </Field>
+        <Field label="Phone" error={fieldErrors.phone}>
+          <input
+            type="tel"
+            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 outline-none ring-accent focus:ring-2"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="+8801…"
+          />
+        </Field>
         <PasswordField
           label="Password"
+          error={fieldErrors.password}
           value={password}
           onValueChange={setPassword}
-          error={fieldErrors.password}
+          autoComplete="new-password"
         />
         {formError ? <p className="text-sm text-red-600">{formError}</p> : null}
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-lg bg-accent px-4 py-3 text-sm font-semibold text-accent-fg disabled:opacity-60"
+          className="w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg disabled:opacity-60"
         >
           {pending ? "Creating account…" : "Create account"}
         </button>
       </form>
-      <p className="mt-4 text-sm text-ink-muted">
+      <p className="mt-6 text-sm text-ink-muted">
         Already have an account?{" "}
-        <Link to="/login" className="text-accent hover:underline">
-          Login
+        <Link to="/login" className="font-medium text-accent hover:underline">
+          Log in
         </Link>
       </p>
     </div>

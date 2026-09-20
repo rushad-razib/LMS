@@ -67,6 +67,7 @@ describe("Phase 3 — Purchases & enrollments", () => {
       fullName: "Phase3 Student",
       email,
       password: "Student12345!",
+      phone: "01700000001",
     });
     expect(reg.status).toBe(201);
     return { email, token: reg.body.accessToken as string, userId: reg.body.user.id as string };

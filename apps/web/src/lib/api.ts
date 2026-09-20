@@ -171,7 +171,12 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 }
 
 export const api = {
-  register: (body: { fullName: string; email: string; password: string }) =>
+  register: (body: {
+    fullName: string;
+    email: string;
+    password: string;
+    phone: string;
+  }) =>
     request<{ accessToken: string; user: PublicUser }>("/auth/register", {
       method: "POST",
       body,
@@ -220,18 +225,166 @@ export const api = {
       body: { token, password },
       auth: false,
     }),
-  getSettings: () =>
-    request<{ emailVerificationRequired: boolean }>("/auth/settings"),
-  updateSettings: (emailVerificationRequired: boolean) =>
-    request<{ emailVerificationRequired: boolean }>("/auth/settings", {
+  getSettings: () => request<WebsiteSettings>("/auth/settings"),
+  updateSettings: (body: Partial<WebsiteSettings>) =>
+    request<WebsiteSettings>("/auth/settings", {
       method: "PATCH",
-      body: { emailVerificationRequired },
+      body,
     }),
+  getPublicSettings: () =>
+    request<{ settings: PublicWebsiteSettings }>("/content/public/settings", {
+      auth: false,
+    }),
+
+  listPublicBlog: () =>
+    request<{ posts: BlogPost[] }>("/content/public/blog", { auth: false }),
+  getPublicBlog: (slug: string) =>
+    request<{ post: BlogPost }>(`/content/public/blog/${slug}`, { auth: false }),
+  listPublicGallery: () =>
+    request<{ items: GalleryItem[] }>("/content/public/gallery", { auth: false }),
+  listPublicTrainers: () =>
+    request<{ trainers: MarketingTrainer[] }>("/content/public/trainers", {
+      auth: false,
+    }),
+
+  adminListBlog: () => request<{ posts: BlogPost[] }>("/content/admin/blog"),
+  adminCreateBlog: (body: {
+    title: string;
+    slug?: string;
+    excerpt: string;
+    bodyHtml: string;
+    published?: boolean;
+  }) =>
+    request<{ post: BlogPost }>("/content/admin/blog", { method: "POST", body }),
+  adminUpdateBlog: (
+    id: string,
+    body: {
+      title?: string;
+      slug?: string;
+      excerpt?: string;
+      bodyHtml?: string;
+      published?: boolean;
+    },
+  ) =>
+    request<{ post: BlogPost }>(`/content/admin/blog/${id}`, {
+      method: "PATCH",
+      body,
+    }),
+  adminDeleteBlog: (id: string) =>
+    request<{ ok: true }>(`/content/admin/blog/${id}`, { method: "DELETE" }),
+  adminUploadBlogCover: (id: string, file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<{ post: BlogPost }>(`/content/admin/blog/${id}/cover`, {
+      method: "POST",
+      body,
+    });
+  },
+
+  adminListGallery: () => request<{ items: GalleryItem[] }>("/content/admin/gallery"),
+  adminCreateGallery: (
+    file: File,
+    meta?: { title?: string | null; sortOrder?: number },
+  ) => {
+    const body = new FormData();
+    body.append("file", file);
+    if (meta?.title) body.append("title", meta.title);
+    if (meta?.sortOrder != null) body.append("sortOrder", String(meta.sortOrder));
+    return request<{ item: GalleryItem }>("/content/admin/gallery", {
+      method: "POST",
+      body,
+    });
+  },
+  adminUpdateGallery: (
+    id: string,
+    body: { title?: string | null; sortOrder?: number },
+  ) =>
+    request<{ item: GalleryItem }>(`/content/admin/gallery/${id}`, {
+      method: "PATCH",
+      body,
+    }),
+  adminDeleteGallery: (id: string) =>
+    request<{ ok: true }>(`/content/admin/gallery/${id}`, { method: "DELETE" }),
+
+  adminListTrainers: () =>
+    request<{ trainers: MarketingTrainer[] }>("/content/admin/trainers"),
+  adminCreateTrainer: (body: {
+    fullName: string;
+    title?: string | null;
+    bio?: string | null;
+    sortOrder?: number;
+    published?: boolean;
+  }) =>
+    request<{ trainer: MarketingTrainer }>("/content/admin/trainers", {
+      method: "POST",
+      body,
+    }),
+  adminUpdateTrainer: (
+    id: string,
+    body: {
+      fullName?: string;
+      title?: string | null;
+      bio?: string | null;
+      sortOrder?: number;
+      published?: boolean;
+    },
+  ) =>
+    request<{ trainer: MarketingTrainer }>(`/content/admin/trainers/${id}`, {
+      method: "PATCH",
+      body,
+    }),
+  adminDeleteTrainer: (id: string) =>
+    request<{ ok: true }>(`/content/admin/trainers/${id}`, { method: "DELETE" }),
+  adminUploadTrainerPhoto: (id: string, file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<{ trainer: MarketingTrainer }>(
+      `/content/admin/trainers/${id}/photo`,
+      { method: "POST", body },
+    );
+  },
+
+  adminListNotices: () => request<{ notices: GlobalNotice[] }>("/notices/admin"),
+  adminCreateNotice: (body: {
+    title: string;
+    body: string;
+    published?: boolean;
+  }) =>
+    request<{ notice: GlobalNotice }>("/notices/admin", { method: "POST", body }),
+  adminUpdateNotice: (
+    id: string,
+    body: { title?: string; body?: string; published?: boolean },
+  ) =>
+    request<{ notice: GlobalNotice }>(`/notices/admin/${id}`, {
+      method: "PATCH",
+      body,
+    }),
+  adminDeleteNotice: (id: string) =>
+    request<{ ok: true }>(`/notices/admin/${id}`, { method: "DELETE" }),
+  studentNotices: () => request<{ notices: GlobalNotice[] }>("/notices/student"),
+
+  submitContact: (body: {
+    name: string;
+    email: string;
+    phone?: string | null;
+    subject: string;
+    message: string;
+  }) =>
+    request<{ ok: true; leadId: string }>("/contact", {
+      method: "POST",
+      body,
+      auth: false,
+    }),
+  adminListLeads: () => request<{ leads: Lead[] }>("/contact/admin"),
+  adminMarkLeadRead: (id: string) =>
+    request<{ lead: Lead }>(`/contact/admin/${id}/read`, { method: "PATCH" }),
+
   adminCreateUser: (body: {
     fullName: string;
     email: string;
     role: UserRole;
     password?: string;
+    phone?: string;
   }) =>
     request<{ user: PublicUser }>("/auth/admin/users", {
       method: "POST",
@@ -352,6 +505,8 @@ export const api = {
       orders: number;
       batches: number;
       unassignedEnrollments: number;
+      unverifiedStudents: number;
+      unreadLeads: number;
     }>("/purchases/admin/dashboard"),
 
   myEnrollments: () =>
@@ -371,7 +526,20 @@ export const api = {
       `/students/courses/${slug}/announcements`,
     ),
   studentProfile: () => request<{ profile: StudentProfile }>("/students/profile"),
-  updateStudentProfile: (body: { phone?: string | null }) =>
+  updateStudentProfile: (body: {
+    phone: string;
+    whatsappPhone?: string | null;
+    dateOfBirth?: string | null;
+    gender?: string | null;
+    nidNumber?: string | null;
+    addressLine?: string | null;
+    city?: string | null;
+    district?: string | null;
+    guardianName?: string | null;
+    guardianPhone?: string | null;
+    educationLevel?: string | null;
+    occupation?: string | null;
+  }) =>
     request<{ profile: StudentProfile }>("/students/profile", {
       method: "PATCH",
       body,
@@ -443,10 +611,40 @@ export const api = {
       { method: "DELETE" },
     ),
   teacherProfile: () => request<{ profile: TeacherProfile }>("/teachers/profile"),
-  updateTeacherProfile: (body: { fullName: string }) =>
+  updateTeacherProfile: (body: {
+    fullName: string;
+    phone?: string | null;
+    title?: string | null;
+    bio?: string | null;
+  }) =>
     request<{ profile: TeacherProfile }>("/teachers/profile", {
       method: "PATCH",
       body,
+    }),
+  teacherUploadPhoto: (body: FormData) =>
+    request<{ profile: TeacherProfile }>("/teachers/profile/photo", {
+      method: "POST",
+      body,
+    }),
+  teacherUploadCv: (body: FormData) =>
+    request<{ profile: TeacherProfile }>("/teachers/profile/cv", {
+      method: "POST",
+      body,
+    }),
+  teacherDeleteCv: () =>
+    request<{ profile: TeacherProfile }>("/teachers/profile/cv", {
+      method: "DELETE",
+    }),
+  adminTeacherProfile: (id: string) =>
+    request<{ profile: TeacherProfile }>(`/auth/admin/teachers/${id}`),
+  adminUploadTeacherCv: (id: string, body: FormData) =>
+    request<{ profile: TeacherProfile }>(`/auth/admin/teachers/${id}/cv`, {
+      method: "POST",
+      body,
+    }),
+  adminDeleteTeacherCv: (id: string) =>
+    request<{ profile: TeacherProfile }>(`/auth/admin/teachers/${id}/cv`, {
+      method: "DELETE",
     }),
 };
 
@@ -493,6 +691,17 @@ export type AdminStudentDetail = {
     email: string;
     status: string;
     phone: string | null;
+    whatsappPhone: string | null;
+    dateOfBirth: string | null;
+    gender: string | null;
+    nidNumber: string | null;
+    addressLine: string | null;
+    city: string | null;
+    district: string | null;
+    guardianName: string | null;
+    guardianPhone: string | null;
+    educationLevel: string | null;
+    occupation: string | null;
     emailVerifiedAt: string | null;
     createdAt: string;
   };
@@ -547,6 +756,17 @@ export type StudentProfile = {
   email: string;
   fullName: string;
   phone: string | null;
+  whatsappPhone: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  nidNumber: string | null;
+  addressLine: string | null;
+  city: string | null;
+  district: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  educationLevel: string | null;
+  occupation: string | null;
   emailVerifiedAt: string | null;
 };
 
@@ -618,4 +838,88 @@ export type TeacherProfile = {
   id: string;
   email: string;
   fullName: string;
+  phone: string | null;
+  title: string | null;
+  bio: string | null;
+  photoUrl: string | null;
+  cvFileName: string | null;
+  cvUrl: string | null;
+};
+
+export type WebsiteSettings = {
+  emailVerificationRequired: boolean;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  businessHours: string | null;
+  whatsappNumber: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  youtubeUrl: string | null;
+  mapEmbedHtml: string | null;
+  announcementBar: string | null;
+};
+
+export type PublicWebsiteSettings = Omit<
+  WebsiteSettings,
+  "emailVerificationRequired"
+>;
+
+export type BlogPost = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  bodyHtml: string;
+  coverImageKey: string | null;
+  coverImageUrl: string | null;
+  published: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GalleryItem = {
+  id: string;
+  title: string | null;
+  imageKey: string;
+  imageUrl: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MarketingTrainer = {
+  id: string;
+  fullName: string;
+  title: string | null;
+  bio: string | null;
+  photoKey: string | null;
+  photoUrl: string | null;
+  sortOrder: number;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type GlobalNotice = {
+  id: string;
+  title: string;
+  body: string;
+  published: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type Lead = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  readAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 };

@@ -12,6 +12,17 @@ import { VerifyEmailPage } from "@/pages/public/VerifyEmailPage";
 import { ForgotPasswordPage } from "@/pages/public/ForgotPasswordPage";
 import { ResetPasswordPage } from "@/pages/public/ResetPasswordPage";
 import { SetPasswordPage } from "@/pages/public/SetPasswordPage";
+import { BlogPage } from "@/pages/public/BlogPage";
+import { BlogDetailPage } from "@/pages/public/BlogDetailPage";
+import { GalleryPage } from "@/pages/public/GalleryPage";
+import { TrainersPage } from "@/pages/public/TrainersPage";
+import { ContactPage } from "@/pages/public/ContactPage";
+import {
+  AboutPage,
+  FaqPage,
+  PrivacyPage,
+  TermsPage,
+} from "@/pages/public/StaticPages";
 import { StudentDashboardPage } from "@/pages/student/StudentDashboardPage";
 import { StudentCoursesPage } from "@/pages/student/StudentCoursesPage";
 import {
@@ -23,6 +34,7 @@ import { StudentMaterialsPage } from "@/pages/student/StudentMaterialsPage";
 import { StudentAnnouncementsPage } from "@/pages/student/StudentAnnouncementsPage";
 import { StudentOrdersPage } from "@/pages/student/StudentOrdersPage";
 import { StudentProfilePage } from "@/pages/student/StudentProfilePage";
+import { StudentNoticesPage } from "@/pages/student/StudentNoticesPage";
 import { AdminDashboardPage } from "@/pages/admin/AdminDashboardPage";
 import { AdminSettingsPage } from "@/pages/admin/AdminSettingsPage";
 import { AdminUsersPage } from "@/pages/admin/AdminUsersPage";
@@ -32,6 +44,12 @@ import { AdminBatchesPage } from "@/pages/admin/AdminBatchesPage";
 import { AdminBatchDetailPage } from "@/pages/admin/AdminBatchDetailPage";
 import { AdminOrdersPage } from "@/pages/admin/AdminOrdersPage";
 import { AdminStudentDetailPage } from "@/pages/admin/AdminStudentDetailPage";
+import { AdminTeacherDetailPage } from "@/pages/admin/AdminTeacherDetailPage";
+import { AdminBlogPage } from "@/pages/admin/AdminBlogPage";
+import { AdminGalleryPage } from "@/pages/admin/AdminGalleryPage";
+import { AdminNoticesPage } from "@/pages/admin/AdminNoticesPage";
+import { AdminTrainersPage } from "@/pages/admin/AdminTrainersPage";
+import { AdminLeadsPage } from "@/pages/admin/AdminLeadsPage";
 import { TeacherDashboardPage } from "@/pages/teacher/TeacherDashboardPage";
 import {
   TeacherBatchHubPage,
@@ -48,8 +66,17 @@ export function AppRouter() {
     <Routes>
       <Route element={<MarketingLayout />}>
         <Route index element={<HomePage />} />
+        <Route path="about" element={<AboutPage />} />
         <Route path="courses" element={<CoursesPage />} />
         <Route path="courses/:slug" element={<CourseDetailPage />} />
+        <Route path="trainers" element={<TrainersPage />} />
+        <Route path="gallery" element={<GalleryPage />} />
+        <Route path="blog" element={<BlogPage />} />
+        <Route path="blog/:slug" element={<BlogDetailPage />} />
+        <Route path="contact" element={<ContactPage />} />
+        <Route path="faq" element={<FaqPage />} />
+        <Route path="privacy" element={<PrivacyPage />} />
+        <Route path="terms" element={<TermsPage />} />
         <Route
           path="checkout/success"
           element={<CheckoutResultPage kind="success" />}
@@ -78,6 +105,7 @@ export function AppRouter() {
             <Route path="announcements" element={<StudentAnnouncementsPage />} />
           </Route>
           <Route path="orders" element={<StudentOrdersPage />} />
+          <Route path="notices" element={<StudentNoticesPage />} />
           <Route path="profile" element={<StudentProfilePage />} />
         </Route>
       </Route>
@@ -95,6 +123,11 @@ export function AppRouter() {
                 { to: "/admin/courses", label: "Courses" },
                 { to: "/admin/batches", label: "Batches" },
                 { to: "/admin/orders", label: "Orders" },
+                { to: "/admin/blog", label: "Blog" },
+                { to: "/admin/gallery", label: "Gallery" },
+                { to: "/admin/notices", label: "Notices" },
+                { to: "/admin/trainers", label: "Trainers" },
+                { to: "/admin/leads", label: "Leads" },
                 { to: "/admin/settings", label: "Settings" },
               ]}
             />
@@ -103,13 +136,18 @@ export function AppRouter() {
           <Route index element={<AdminDashboardPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="students/:userId" element={<AdminStudentDetailPage />} />
+          <Route path="teachers/:userId" element={<AdminTeacherDetailPage />} />
           <Route path="settings" element={<AdminSettingsPage />} />
           <Route path="courses" element={<AdminCoursesPage />} />
           <Route path="courses/:courseId" element={<AdminCourseBatchesPage />} />
           <Route path="batches" element={<AdminBatchesPage />} />
           <Route path="batches/:batchId" element={<AdminBatchDetailPage />} />
           <Route path="orders" element={<AdminOrdersPage />} />
-          <Route path="*" element={<Placeholder title="Coming in a later phase" />} />
+          <Route path="blog" element={<AdminBlogPage />} />
+          <Route path="gallery" element={<AdminGalleryPage />} />
+          <Route path="notices" element={<AdminNoticesPage />} />
+          <Route path="trainers" element={<AdminTrainersPage />} />
+          <Route path="leads" element={<AdminLeadsPage />} />
         </Route>
       </Route>
 

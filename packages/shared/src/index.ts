@@ -26,6 +26,7 @@ export const RegisterInputSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
   email: z.string().trim().email().max(255),
   password: z.string().min(8).max(128),
+  phone: z.string().trim().min(6).max(40),
 });
 export type RegisterInput = z.infer<typeof RegisterInputSchema>;
 
@@ -57,12 +58,23 @@ export const SetPasswordInputSchema = z.object({
   password: z.string().min(8).max(128),
 });
 
-export const AdminCreateUserInputSchema = z.object({
-  fullName: z.string().trim().min(2).max(120),
-  email: z.string().trim().email().max(255),
-  role: UserRoleSchema,
-  password: z.string().min(8).max(128).optional(),
-});
+export const AdminCreateUserInputSchema = z
+  .object({
+    fullName: z.string().trim().min(2).max(120),
+    email: z.string().trim().email().max(255),
+    role: UserRoleSchema,
+    password: z.string().min(8).max(128).optional(),
+    phone: z.string().trim().min(6).max(40).optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "STUDENT" && (!data.phone || data.phone.trim().length < 6)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone is required for students",
+        path: ["phone"],
+      });
+    }
+  });
 export type AdminCreateUserInput = z.infer<typeof AdminCreateUserInputSchema>;
 
 export const AdminDeleteUserInputSchema = z.preprocess(
@@ -73,9 +85,108 @@ export const AdminDeleteUserInputSchema = z.preprocess(
 );
 export type AdminDeleteUserInput = z.infer<typeof AdminDeleteUserInputSchema>;
 
+const optionalText = (max: number) =>
+  z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+    z.string().trim().max(max).nullable().optional(),
+  );
+
+const optionalEmail = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+  z.string().trim().email().max(255).nullable().optional(),
+);
+
+const optionalHttpUrl = z.preprocess(
+  (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+  z
+    .string()
+    .trim()
+    .max(2000)
+    .refine((v) => /^https?:\/\//i.test(v), { message: "Must be a valid http(s) URL" })
+    .nullable()
+    .optional(),
+);
+
 export const UpdateSettingsInputSchema = z.object({
-  emailVerificationRequired: z.boolean(),
+  emailVerificationRequired: z.boolean().optional(),
+  contactPhone: optionalText(40),
+  contactEmail: optionalEmail,
+  address: optionalText(2000),
+  businessHours: optionalText(2000),
+  whatsappNumber: optionalText(40),
+  facebookUrl: optionalHttpUrl,
+  instagramUrl: optionalHttpUrl,
+  youtubeUrl: optionalHttpUrl,
+  mapEmbedHtml: optionalText(8000),
+  announcementBar: optionalText(500),
 });
+export type UpdateSettingsInput = z.infer<typeof UpdateSettingsInputSchema>;
+
+export const CreateBlogPostInputSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  slug: z
+    .string()
+    .trim()
+    .min(2)
+    .max(200)
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase kebab-case")
+    .optional(),
+  excerpt: z.string().trim().min(1).max(2000),
+  bodyHtml: z.string().trim().min(1).max(200_000),
+  published: z.boolean().optional(),
+});
+export type CreateBlogPostInput = z.infer<typeof CreateBlogPostInputSchema>;
+
+export const UpdateBlogPostInputSchema = CreateBlogPostInputSchema.partial();
+export type UpdateBlogPostInput = z.infer<typeof UpdateBlogPostInputSchema>;
+
+export const CreateGalleryItemInputSchema = z.object({
+  title: z.string().trim().max(200).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+});
+export type CreateGalleryItemInput = z.infer<typeof CreateGalleryItemInputSchema>;
+
+export const UpdateGalleryItemInputSchema = z.object({
+  title: z.string().trim().max(200).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+});
+export type UpdateGalleryItemInput = z.infer<typeof UpdateGalleryItemInputSchema>;
+
+export const CreateGlobalNoticeInputSchema = z.object({
+  title: z.string().trim().min(2).max(200),
+  body: z.string().trim().min(1).max(20_000),
+  published: z.boolean().optional(),
+});
+export type CreateGlobalNoticeInput = z.infer<typeof CreateGlobalNoticeInputSchema>;
+
+export const UpdateGlobalNoticeInputSchema = CreateGlobalNoticeInputSchema.partial();
+export type UpdateGlobalNoticeInput = z.infer<typeof UpdateGlobalNoticeInputSchema>;
+
+export const CreateMarketingTrainerInputSchema = z.object({
+  fullName: z.string().trim().min(2).max(120),
+  title: z.string().trim().max(200).optional().nullable(),
+  bio: z.string().trim().max(8000).optional().nullable(),
+  sortOrder: z.number().int().min(0).max(10_000).optional(),
+  published: z.boolean().optional(),
+});
+export type CreateMarketingTrainerInput = z.infer<
+  typeof CreateMarketingTrainerInputSchema
+>;
+
+export const UpdateMarketingTrainerInputSchema =
+  CreateMarketingTrainerInputSchema.partial();
+export type UpdateMarketingTrainerInput = z.infer<
+  typeof UpdateMarketingTrainerInputSchema
+>;
+
+export const ContactLeadInputSchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email().max(255),
+  phone: z.string().trim().max(40).optional().nullable(),
+  subject: z.string().trim().min(2).max(200),
+  message: z.string().trim().min(10).max(10_000),
+});
+export type ContactLeadInput = z.infer<typeof ContactLeadInputSchema>;
 
 export const PublicUserSchema = z.object({
   id: z.string(),
@@ -203,12 +314,43 @@ export const SetEnrollmentAccessInputSchema = z.object({
 export type SetEnrollmentAccessInput = z.infer<typeof SetEnrollmentAccessInputSchema>;
 
 export const UpdateStudentProfileInputSchema = z.object({
-  phone: z.string().trim().max(40).nullable().optional(),
+  phone: z.string().trim().min(6).max(40),
+  whatsappPhone: optionalText(40),
+  dateOfBirth: z.preprocess(
+    (v) => (typeof v === "string" && v.trim() === "" ? null : v),
+    z
+      .string()
+      .trim()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .nullable()
+      .optional(),
+  ),
+  gender: z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]).nullable().optional(),
+  nidNumber: optionalText(40),
+  addressLine: optionalText(191),
+  city: optionalText(120),
+  district: optionalText(120),
+  guardianName: optionalText(120),
+  guardianPhone: optionalText(40),
+  educationLevel: optionalText(120),
+  occupation: optionalText(120),
 });
 export type UpdateStudentProfileInput = z.infer<typeof UpdateStudentProfileInputSchema>;
 
+export const StudentGenderSchema = z.enum([
+  "MALE",
+  "FEMALE",
+  "OTHER",
+  "PREFER_NOT_TO_SAY",
+]);
+export type StudentGender = z.infer<typeof StudentGenderSchema>;
+export const STUDENT_GENDERS = StudentGenderSchema.options;
+
 export const UpdateTeacherProfileInputSchema = z.object({
   fullName: z.string().trim().min(2).max(120),
+  phone: optionalText(40),
+  title: optionalText(120),
+  bio: optionalText(8000),
 });
 export type UpdateTeacherProfileInput = z.infer<typeof UpdateTeacherProfileInputSchema>;
 

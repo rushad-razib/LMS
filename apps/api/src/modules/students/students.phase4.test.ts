@@ -50,6 +50,7 @@ describe("Phase 4 — Student portal gating", () => {
       fullName: "Phase4 Student",
       email,
       password: "Student12345!",
+      phone: "01700000001",
     });
     expect(reg.status).toBe(201);
     return {
@@ -209,14 +210,24 @@ describe("Phase 4 — Student portal gating", () => {
     const patch = await api(app)
       .patch("/api/v1/students/profile")
       .set("Authorization", `Bearer ${student.token}`)
-      .send({ phone: "+8801712345678" });
+      .send({
+        phone: "+8801712345678",
+        city: "Dhaka",
+        district: "Dhaka",
+        gender: "FEMALE",
+        nidNumber: "1234567890",
+      });
     expect(patch.status).toBe(200);
     expect(patch.body.profile.phone).toBe("+8801712345678");
+    expect(patch.body.profile.city).toBe("Dhaka");
+    expect(patch.body.profile.gender).toBe("FEMALE");
+    expect(patch.body.profile.nidNumber).toBe("1234567890");
 
     const get = await api(app)
       .get("/api/v1/students/profile")
       .set("Authorization", `Bearer ${student.token}`);
     expect(get.status).toBe(200);
     expect(get.body.profile.phone).toBe("+8801712345678");
+    expect(get.body.profile.district).toBe("Dhaka");
   });
 });

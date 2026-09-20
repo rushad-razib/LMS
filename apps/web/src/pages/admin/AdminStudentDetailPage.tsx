@@ -142,6 +142,46 @@ export function AdminStudentDetailPage() {
             <dd className="mt-1">{student.phone || "—"}</dd>
           </div>
           <div>
+            <dt className="text-xs uppercase text-ink-muted">WhatsApp</dt>
+            <dd className="mt-1">{student.whatsappPhone || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Date of birth</dt>
+            <dd className="mt-1">{student.dateOfBirth || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Gender</dt>
+            <dd className="mt-1">{student.gender || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">NID</dt>
+            <dd className="mt-1">{student.nidNumber || "—"}</dd>
+          </div>
+          <div className="sm:col-span-2">
+            <dt className="text-xs uppercase text-ink-muted">Address</dt>
+            <dd className="mt-1">
+              {[student.addressLine, student.city, student.district]
+                .filter(Boolean)
+                .join(", ") || "—"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Guardian</dt>
+            <dd className="mt-1">{student.guardianName || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Guardian phone</dt>
+            <dd className="mt-1">{student.guardianPhone || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Education</dt>
+            <dd className="mt-1">{student.educationLevel || "—"}</dd>
+          </div>
+          <div>
+            <dt className="text-xs uppercase text-ink-muted">Occupation</dt>
+            <dd className="mt-1">{student.occupation || "—"}</dd>
+          </div>
+          <div>
             <dt className="text-xs uppercase text-ink-muted">Status</dt>
             <dd className="mt-1">{student.status}</dd>
           </div>

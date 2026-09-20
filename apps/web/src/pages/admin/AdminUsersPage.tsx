@@ -62,6 +62,7 @@ export function AdminUsersPage() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("STUDENT");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -85,6 +86,7 @@ export function AdminUsersPage() {
     setEmail("");
     setRole("STUDENT");
     setPassword("");
+    setPhone("");
     setFieldErrors({});
     setFormError(null);
   }
@@ -100,6 +102,7 @@ export function AdminUsersPage() {
       email,
       role,
       password: password || undefined,
+      phone: phone.trim() || undefined,
     });
     if (!parsed.ok) {
       setFieldErrors(parsed.fieldErrors);
@@ -188,6 +191,13 @@ export function AdminUsersPage() {
             {row.original.role === "STUDENT" ? (
               <Link
                 to={`/admin/students/${row.original.id}`}
+                className="font-medium text-accent hover:underline"
+              >
+                {row.original.fullName}
+              </Link>
+            ) : row.original.role === "TEACHER" ? (
+              <Link
+                to={`/admin/teachers/${row.original.id}`}
                 className="font-medium text-accent hover:underline"
               >
                 {row.original.fullName}
@@ -299,6 +309,20 @@ export function AdminUsersPage() {
               <option value="ADMIN">Admin</option>
             </select>
           </Field>
+          {role === "STUDENT" || role === "TEACHER" ? (
+            <Field
+              label={role === "STUDENT" ? "Phone" : "Phone (optional)"}
+              error={fieldErrors.phone}
+            >
+              <input
+                className="rounded-lg border border-border bg-surface px-3 py-2"
+                placeholder="+8801…"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+              />
+            </Field>
+          ) : null}
           <Field label="Password" error={fieldErrors.password}>
             <input
               className="rounded-lg border border-border bg-surface px-3 py-2"

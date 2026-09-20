@@ -116,7 +116,7 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 
 - Light `StudentLayout`  
 - Gating: no cohort content until `batchId` set  
-- Nested routes per [student-portal.md](modules/student-portal.md); `/student/notices` deferred to Phase 6  
+- Nested routes per [student-portal.md](modules/student-portal.md); `/student/notices` added in Phase 6  
 
 **Checkpoint:** Assigned student sees sessions + materials; unassigned does not.
 
@@ -135,13 +135,33 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 
 **Tests:** `apps/api/src/modules/teachers/teachers.phase5.test.ts` — `pnpm test:api`
 
+### LMS revision (post Phase 5)
+**Status:** Complete  
+**Deliverable:** Course covers, batch seats/mode/dates, admin installments, student detail access control
+
+- Course cover image upload (WebP) on admin + public catalog  
+- Batch `deliveryMode`, `seatCapacity`, optional start/end dates; seat hard cap on assign/enroll  
+- Admin office enroll: Full | 3-month | 6-month installments; dues + mark paid  
+- `/admin/students/:userId` — installment dues, `accessBlocked` toggle  
+- Installment reminder cron: `POST /api/v1/internal/installment-reminders`  
+- UI polish (non-blocking): shared `PasswordField`, form error helpers  
+
+**Checkpoint:** Admin enrolls with installments; student detail shows dues; full batch respects seats.
+
+**Tests:** `apps/api/src/modules/purchases/purchases.revision.test.ts` — `pnpm test:api`
+
 ### Phase 6 — Admin CMS & contact
+**Status:** Complete  
 **Deliverable:** Blog (rich text), gallery, notices, settings, contact leads, media service
 
-- `emailVerificationRequired` toggle  
-- Secrets remain env-only  
+- TipTap editor → sanitized HTML body; CMS image uploads via shared media service  
+- Extended website settings (contact/social/map/announcement bar); secrets remain env-only  
+- Public: blog, gallery, trainers, contact + static about/faq/privacy/terms  
+- Student `/student/notices`; admin leads list + mark read  
 
 **Checkpoint:** Contact form → Lead + Resend; blog publish on public site.
+
+**Tests:** `apps/api/src/modules/content/content.phase6.test.ts` — `pnpm test:api`
 
 ### Phase 7 — Hardening & launch prep
 **Deliverable:** SPA meta/prerender where planned, Analytics hooks, backup notes, launch checklist pass

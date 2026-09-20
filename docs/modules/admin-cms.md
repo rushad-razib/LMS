@@ -1,6 +1,6 @@
 # Module: Admin CMS
 
-**Status:** Clarified (Round 3) · Admin list UX pattern adopted
+**Status:** Clarified (Round 3) · Phase 6 implemented · Admin list UX pattern adopted
 
 ## Admin list UX pattern
 
@@ -23,11 +23,12 @@ Settings stays a form page (not a list). Teacher portal reuses the same primitiv
 - Courses / Batches  
 - Marketing trainers  
 - Global notices / Gallery / Blog / Settings  
+- Contact leads  
 
 ## Blog
 
 - Basic CMS: title, slug, excerpt, **rich-text body**, cover image, publish flag, publishedAt  
-- Rich-text editor on admin (e.g. TipTap or similar) — store HTML or editor JSON (decide at implement time; sanitize on render)
+- Rich-text editor: **TipTap** → store **HTML**; sanitize with `sanitize-html` on persist and public render  
 
 ## Settings (non-secret)
 
@@ -48,10 +49,11 @@ Settings stays a form page (not a list). Teacher portal reuses the same primitiv
 - Unverified students  
 - Orders  
 - Active batches  
+- Unread leads  
 
 ## Acceptance criteria
 
-- [ ] Admin can create another Admin  
-- [ ] Blog rich-text create/edit/publish  
-- [ ] Settings toggle affects verification gate  
-- [ ] No payment/email secrets editable in UI  
+- [x] Admin can create another Admin  
+- [x] Blog rich-text create/edit/publish  
+- [x] Settings toggle affects verification gate  
+- [x] No payment/email secrets editable in UI  

@@ -271,3 +271,39 @@ teachersRouter.patch(
     }
   },
 );
+
+teachersRouter.post("/profile/photo", upload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError(400, "File is required", "VALIDATION_ERROR");
+    }
+    const profile = await teachersService.uploadTeacherPhoto(
+      req.user!.id,
+      req.file,
+    );
+    res.json({ profile });
+  } catch (err) {
+    next(err);
+  }
+});
+
+teachersRouter.post("/profile/cv", upload.single("file"), async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError(400, "File is required", "VALIDATION_ERROR");
+    }
+    const profile = await teachersService.uploadTeacherCv(req.user!.id, req.file);
+    res.json({ profile });
+  } catch (err) {
+    next(err);
+  }
+});
+
+teachersRouter.delete("/profile/cv", async (req, res, next) => {
+  try {
+    const profile = await teachersService.deleteTeacherCv(req.user!.id);
+    res.json({ profile });
+  } catch (err) {
+    next(err);
+  }
+});

@@ -197,6 +197,66 @@ export async function storeCourseCoverImage(input: {
   };
 }
 
+export async function storeTeacherCv(input: {
+  teacherId: string;
+  originalName: string;
+  mimeType: string;
+  buffer: Buffer;
+}): Promise<StoredObject> {
+  const mime = input.mimeType.toLowerCase();
+  if (mime !== "application/pdf") {
+    throw new AppError(400, "CV must be a PDF file", "UNSUPPORTED_FILE_TYPE");
+  }
+  classifyUpload(mime, input.buffer.byteLength);
+  const original = safeFileName(input.originalName);
+  const base = basenameWithoutExt(original) || "cv";
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const fileName = `${base}.pdf`;
+  const storageKey = `teachers/${input.teacherId}/cv/${id}.pdf`;
+  await putObject(storageKey, input.buffer, "application/pdf");
+  return {
+    storageKey,
+    mimeType: "application/pdf",
+    sizeBytes: input.buffer.byteLength,
+    fileName,
+  };
+}
+
+export type CmsImageKind = "blog" | "gallery" | "trainer" | "teacher";
+
+export async function storeCmsImage(input: {
+  kind: CmsImageKind;
+  entityId: string;
+  originalName: string;
+  mimeType: string;
+  buffer: Buffer;
+}): Promise<StoredObject> {
+  const kind = classifyUpload(input.mimeType, input.buffer.byteLength);
+  if (kind !== "image") {
+    throw new AppError(400, "Upload must be an image", "UNSUPPORTED_FILE_TYPE");
+  }
+  const original = safeFileName(input.originalName);
+  const id = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const webp = await sharp(input.buffer).webp({ quality: 82 }).toBuffer();
+  const fileName = `${basenameWithoutExt(original) || "image"}.webp`;
+  const folder =
+    input.kind === "blog"
+      ? `cms/blog/${input.entityId}/cover`
+      : input.kind === "gallery"
+        ? `cms/gallery/${input.entityId}`
+        : input.kind === "teacher"
+          ? `teachers/${input.entityId}/photo`
+          : `cms/trainers/${input.entityId}`;
+  const storageKey = `${folder}/${id}.webp`;
+  await putObject(storageKey, webp, "image/webp");
+  return {
+    storageKey,
+    mimeType: "image/webp",
+    sizeBytes: webp.byteLength,
+    fileName,
+  };
+}
+
 export async function deleteStoredObject(storageKey: string) {
   if (!storageKey || storageKey.startsWith("stubs/")) return;
   try {

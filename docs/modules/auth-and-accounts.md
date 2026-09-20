@@ -24,6 +24,8 @@ Public student registration; Admin-provisioned Teacher, Student, and Admin accou
 6. Register endpoint **always** creates `STUDENT` only.  
 7. Admins may create additional users with role `ADMIN` (same permissions; no RBAC matrix in v1).  
 8. Password at registration for public signup; Admin-created students get verification (+ set-password as needed).  
+8a. **Registration fields:** `fullName`, `email`, `password`, **`phone` (required)**. Demographics beyond phone are filled later on `/student/profile`.  
+8b. Admin create: phone **required** for `STUDENT`; optional for `TEACHER`; unused for `ADMIN`. Teachers get a `TeacherProfile` row on create.  
 9. Password reset in v1.  
 10. JWT access + httpOnly refresh cookie.  
 11. **Admin-only user delete** (`DELETE /auth/admin/users/:id`). Hard delete; email may be reused.  

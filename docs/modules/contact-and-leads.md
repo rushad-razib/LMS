@@ -1,6 +1,6 @@
 # Module: Contact & Leads
 
-**Status:** Clarified (Round 3)
+**Status:** Clarified (Round 3) · Phase 6 implemented
 
 ## Purpose
 
@@ -20,15 +20,16 @@ Public contact page + lead capture.
 ## Locked behavior
 
 1. Persist submission as **Lead** in DB  
-2. Email Admin via Resend  
+2. Email Admin via Resend (inbox = Settings `contactEmail`, else `ADMIN_EMAIL`)  
 3. Success message on UI even if email fails (log failure); prefer both succeed  
+4. Rate limit: 5 submissions / 15 minutes / IP  
 
 ## Admin
 
-- List / view leads (mark read optional nice-to-have)  
+- List / view leads; mark read  
 
 ## Acceptance criteria
 
-- [ ] Validation + spam-friendly rate limit  
-- [ ] Lead row created  
-- [ ] Admin notification email attempted  
+- [x] Validation + spam-friendly rate limit  
+- [x] Lead row created  
+- [x] Admin notification email attempted  

@@ -8,6 +8,8 @@ export function AdminDashboardPage() {
     orders: number;
     batches: number;
     unassignedEnrollments: number;
+    unverifiedStudents: number;
+    unreadLeads: number;
   } | null>(null);
 
   useEffect(() => {
@@ -21,6 +23,11 @@ export function AdminDashboardPage() {
 
   const cards = [
     { label: "Students", value: counts?.students, to: "/admin/users" },
+    {
+      label: "Unverified students",
+      value: counts?.unverifiedStudents,
+      to: "/admin/users",
+    },
     { label: "Orders", value: counts?.orders, to: "/admin/orders" },
     { label: "Batches", value: counts?.batches, to: "/admin/batches" },
     {
@@ -28,15 +35,17 @@ export function AdminDashboardPage() {
       value: counts?.unassignedEnrollments,
       to: "/admin/orders",
     },
+    { label: "Unread leads", value: counts?.unreadLeads, to: "/admin/leads" },
   ];
 
   return (
     <div className="space-y-4">
       <h1 className="font-display text-2xl font-semibold">Admin dashboard</h1>
       <p className="text-ink-muted">
-        Orders and office enrollments are live. Assign batches from Orders.
+        LMS ops plus CMS. Assign batches from Orders; manage content under Blog /
+        Gallery / Notices.
       </p>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map((card) => (
           <Link
             key={card.label}

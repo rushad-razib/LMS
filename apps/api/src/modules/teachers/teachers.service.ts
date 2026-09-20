@@ -415,14 +415,32 @@ export async function deleteAnnouncement(
 }
 
 export async function getTeacherProfile(teacherId: string) {
-  const user = await prisma.user.findUnique({ where: { id: teacherId } });
+  const user = await prisma.user.findUnique({
+    where: { id: teacherId },
+    include: { teacherProfile: true },
+  });
   if (!user || user.role !== "TEACHER") {
-    throw new AppError(403, "Teacher access only", "FORBIDDEN");
+    throw new AppError(404, "Teacher not found", "NOT_FOUND");
+  }
+  const p = user.teacherProfile;
+  let cvUrl: string | null = null;
+  if (p?.cvKey) {
+    try {
+      cvUrl = await mediaService.getDownloadUrl(p.cvKey);
+    } catch (err) {
+      console.error("teacher CV url failed", err);
+    }
   }
   return {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
+    phone: p?.phone ?? null,
+    title: p?.title ?? null,
+    bio: p?.bio ?? null,
+    photoUrl: p?.photoUrl ?? null,
+    cvFileName: p?.cvFileName ?? null,
+    cvUrl,
   };
 }
 
@@ -430,17 +448,119 @@ export async function updateTeacherProfile(
   teacherId: string,
   input: UpdateTeacherProfileInput,
 ) {
-  const user = await prisma.user.findUnique({ where: { id: teacherId } });
+  const user = await prisma.user.findUnique({
+    where: { id: teacherId },
+    include: { teacherProfile: true },
+  });
   if (!user || user.role !== "TEACHER") {
-    throw new AppError(403, "Teacher access only", "FORBIDDEN");
+    throw new AppError(404, "Teacher not found", "NOT_FOUND");
   }
   const updated = await prisma.user.update({
     where: { id: teacherId },
     data: { fullName: input.fullName },
   });
-  return {
-    id: updated.id,
-    email: updated.email,
-    fullName: updated.fullName,
+
+  const profileData = {
+    ...(input.phone !== undefined ? { phone: input.phone } : {}),
+    ...(input.title !== undefined ? { title: input.title } : {}),
+    ...(input.bio !== undefined ? { bio: input.bio } : {}),
   };
+
+  if (Object.keys(profileData).length > 0 || !user.teacherProfile) {
+    await prisma.teacherProfile.upsert({
+      where: { userId: teacherId },
+      create: { userId: teacherId, ...profileData },
+      update: profileData,
+    });
+  }
+
+  return getTeacherProfile(updated.id);
+}
+
+export async function uploadTeacherPhoto(
+  teacherId: string,
+  file: Express.Multer.File,
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: teacherId },
+    include: { teacherProfile: true },
+  });
+  if (!user || user.role !== "TEACHER") {
+    throw new AppError(404, "Teacher not found", "NOT_FOUND");
+  }
+
+  let profile = user.teacherProfile;
+  if (!profile) {
+    profile = await prisma.teacherProfile.create({
+      data: { userId: teacherId },
+    });
+  }
+
+  const stored = await mediaService.storeCmsImage({
+    kind: "teacher",
+    entityId: teacherId,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    buffer: file.buffer,
+  });
+  const url = await mediaService.getDownloadUrl(stored.storageKey);
+  if (profile.photoKey) await mediaService.deleteStoredObject(profile.photoKey);
+  await prisma.teacherProfile.update({
+    where: { id: profile.id },
+    data: { photoKey: stored.storageKey, photoUrl: url },
+  });
+  return getTeacherProfile(teacherId);
+}
+
+export async function uploadTeacherCv(
+  teacherId: string,
+  file: Express.Multer.File,
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: teacherId },
+    include: { teacherProfile: true },
+  });
+  if (!user || user.role !== "TEACHER") {
+    throw new AppError(404, "Teacher not found", "NOT_FOUND");
+  }
+
+  let profile = user.teacherProfile;
+  if (!profile) {
+    profile = await prisma.teacherProfile.create({
+      data: { userId: teacherId },
+    });
+  }
+
+  const stored = await mediaService.storeTeacherCv({
+    teacherId,
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    buffer: file.buffer,
+  });
+  if (profile.cvKey) await mediaService.deleteStoredObject(profile.cvKey);
+  await prisma.teacherProfile.update({
+    where: { id: profile.id },
+    data: { cvKey: stored.storageKey, cvFileName: stored.fileName },
+  });
+  return getTeacherProfile(teacherId);
+}
+
+export async function deleteTeacherCv(teacherId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: teacherId },
+    include: { teacherProfile: true },
+  });
+  if (!user || user.role !== "TEACHER") {
+    throw new AppError(404, "Teacher not found", "NOT_FOUND");
+  }
+  const profile = user.teacherProfile;
+  if (!profile?.cvKey) {
+    return getTeacherProfile(teacherId);
+  }
+  await mediaService.deleteStoredObject(profile.cvKey);
+  await prisma.teacherProfile.update({
+    where: { id: profile.id },
+    data: { cvKey: null, cvFileName: null },
+  });
+  return getTeacherProfile(teacherId);
 }

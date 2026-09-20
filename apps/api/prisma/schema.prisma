@@ -79,6 +79,13 @@ enum InstallmentStatus {
   OVERDUE
 }
 
+enum StudentGender {
+  MALE
+  FEMALE
+  OTHER
+  PREFER_NOT_TO_SAY
+}
+
 model User {
   id              String     @id @default(cuid())
   email           String     @unique
@@ -91,6 +98,7 @@ model User {
   updatedAt       DateTime   @updatedAt
 
   studentProfile  StudentProfile?
+  teacherProfile  TeacherProfile?
   tokens          AuthToken[]
   taughtBatches   Batch[]           @relation("BatchTeacher")
   orders          Order[]
@@ -99,11 +107,38 @@ model User {
 }
 
 model StudentProfile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String         @id @default(cuid())
+  userId         String         @unique
+  phone          String?
+  whatsappPhone  String?
+  dateOfBirth    DateTime?      @db.Date
+  gender         StudentGender?
+  nidNumber      String?
+  addressLine    String?
+  city           String?
+  district       String?
+  guardianName   String?
+  guardianPhone  String?
+  educationLevel String?
+  occupation     String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model TeacherProfile {
+  id         String   @id @default(cuid())
+  userId     String   @unique
+  phone      String?
+  title      String?
+  bio        String?  @db.Text
+  photoKey   String?
+  photoUrl   String?  @db.Text
+  cvKey      String?
+  cvFileName String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -127,7 +162,87 @@ model AuthToken {
 model WebsiteSettings {
   id                        String   @id @default("default")
   emailVerificationRequired Boolean  @default(true)
+  contactPhone              String?
+  contactEmail              String?
+  address                   String?  @db.Text
+  businessHours             String?  @db.Text
+  whatsappNumber            String?
+  facebookUrl               String?  @db.Text
+  instagramUrl              String?  @db.Text
+  youtubeUrl                String?  @db.Text
+  mapEmbedHtml              String?  @db.Text
+  announcementBar           String?  @db.Text
   updatedAt                 DateTime @updatedAt
+}
+
+model BlogPost {
+  id             String    @id @default(cuid())
+  title          String
+  slug           String    @unique
+  excerpt        String    @db.Text
+  bodyHtml       String    @db.LongText
+  coverImageKey  String?
+  coverImageUrl  String?   @db.Text
+  published      Boolean   @default(false)
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+model GalleryItem {
+  id        String   @id @default(cuid())
+  title     String?
+  imageKey  String
+  imageUrl  String   @db.Text
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
+model GlobalNotice {
+  id          String    @id @default(cuid())
+  title       String
+  body        String    @db.Text
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([published, publishedAt])
+}
+
+model MarketingTrainer {
+  id        String   @id @default(cuid())
+  fullName  String
+  title     String?
+  bio       String?  @db.Text
+  photoKey  String?
+  photoUrl  String?  @db.Text
+  sortOrder Int      @default(0)
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, sortOrder])
+}
+
+model Lead {
+  id        String    @id @default(cuid())
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String    @db.Text
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([createdAt])
+  @@index([readAt])
 }
 
 model Course {

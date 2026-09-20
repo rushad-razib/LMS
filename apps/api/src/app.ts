@@ -17,6 +17,9 @@ import { studentsRouter } from "./modules/students/students.routes.js";
 import { teachersRouter } from "./modules/teachers/teachers.routes.js";
 import { mediaRouter } from "./modules/media/media.routes.js";
 import { internalRouter } from "./modules/internal/internal.routes.js";
+import { contentRouter } from "./modules/content/content.routes.js";
+import { noticesRouter } from "./modules/notices/notices.routes.js";
+import { contactRouter } from "./modules/contact/contact.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -49,6 +52,9 @@ export function createApp(env: Env) {
   app.use(`${API_PREFIX}/teachers`, teachersRouter);
   app.use(`${API_PREFIX}/media`, mediaRouter);
   app.use(`${API_PREFIX}/internal`, internalRouter);
+  app.use(`${API_PREFIX}/content`, contentRouter);
+  app.use(`${API_PREFIX}/notices`, noticesRouter);
+  app.use(`${API_PREFIX}/contact`, contactRouter);
 
   app.use(API_PREFIX, (_req, res) => {
     res.status(404).json({

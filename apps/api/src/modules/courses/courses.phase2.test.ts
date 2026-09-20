@@ -104,6 +104,7 @@ describe("Phase 2 — Courses & batches", () => {
       fullName: "Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const res = await api(app)
@@ -184,6 +185,7 @@ describe("Phase 2 — Courses & batches", () => {
       fullName: "Not Teacher",
       email: studentEmail,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const courseRes = await api(app)

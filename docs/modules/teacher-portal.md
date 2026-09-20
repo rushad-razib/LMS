@@ -33,6 +33,14 @@ Teacher does **not** assign students or create batches. One primary teacher per 
 | `/teacher/batches/:id/sessions` | Live sessions schedule |
 | `/teacher/profile` | Profile |
 
+## Profile fields
+
+**Admin create:** `fullName`, `email`, optional `password` / `phone` → seeds `TeacherProfile`.
+
+**Editable on `/teacher/profile`:** `fullName`, `phone`, `title`, `bio`, photo upload (`POST /teachers/profile/photo`), optional CV PDF (`POST /teachers/profile/cv`, `DELETE /teachers/profile/cv`). Email is read-only. Separate from marketing CMS trainers.
+
+**Admin:** `/admin/teachers/:id` — view profile and upload/replace/remove CV (`POST` / `DELETE /auth/admin/teachers/:id/cv`). CV is never required at user create.
+
 ## Acceptance criteria
 
 - [x] 403 on unassigned batches  

@@ -79,6 +79,7 @@ describe("Phase 5 — Teacher portal", () => {
       fullName: "Phase5 Student",
       email,
       password: "Student12345!",
+      phone: "01700000001",
     });
     expect(reg.status).toBe(201);
     return {
@@ -286,8 +287,54 @@ describe("Phase 5 — Teacher portal", () => {
     const patch = await api(app)
       .patch("/api/v1/teachers/profile")
       .set("Authorization", `Bearer ${teacher.token}`)
-      .send({ fullName: "Updated Teacher Name" });
+      .send({
+        fullName: "Updated Teacher Name",
+        phone: "01800000002",
+        title: "Lead Instructor",
+        bio: "Teaches web development.",
+      });
     expect(patch.status).toBe(200);
     expect(patch.body.profile.fullName).toBe("Updated Teacher Name");
+    expect(patch.body.profile.phone).toBe("01800000002");
+    expect(patch.body.profile.title).toBe("Lead Instructor");
+    expect(patch.body.profile.bio).toBe("Teaches web development.");
+
+    const get = await api(app)
+      .get("/api/v1/teachers/profile")
+      .set("Authorization", `Bearer ${teacher.token}`);
+    expect(get.status).toBe(200);
+    expect(get.body.profile.title).toBe("Lead Instructor");
+  });
+
+  it("uploads and deletes an optional teacher CV PDF", async () => {
+    const teacher = await createTeacher();
+    const pdf = Buffer.from("%PDF-1.4 teacher-cv-test");
+    const upload = await api(app)
+      .post("/api/v1/teachers/profile/cv")
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .attach("file", pdf, {
+        filename: "resume.pdf",
+        contentType: "application/pdf",
+      });
+    expect(upload.status).toBe(200);
+    expect(upload.body.profile.cvFileName).toBe("resume.pdf");
+    expect(upload.body.profile.cvUrl).toBeTypeOf("string");
+
+    const adminUpload = await api(app)
+      .post(`/api/v1/auth/admin/teachers/${teacher.userId}/cv`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .attach("file", pdf, {
+        filename: "admin-cv.pdf",
+        contentType: "application/pdf",
+      });
+    expect(adminUpload.status).toBe(200);
+    expect(adminUpload.body.profile.cvFileName).toBe("admin-cv.pdf");
+
+    const del = await api(app)
+      .delete(`/api/v1/auth/admin/teachers/${teacher.userId}/cv`)
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(del.status).toBe(200);
+    expect(del.body.profile.cvFileName).toBeNull();
+    expect(del.body.profile.cvUrl).toBeNull();
   });
 });

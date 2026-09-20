@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { Request } from "express";
+import multer from "multer";
 import {
   AdminCreateUserInputSchema,
   AdminDeleteUserInputSchema,
@@ -14,11 +15,18 @@ import {
 } from "@arva/shared";
 import { validateBody } from "../../common/middleware/validate.js";
 import { requireAuth, requireRoles } from "../../common/middleware/auth.js";
+import { AppError } from "../../common/errors.js";
 import { refreshCookieOptions } from "./token.service.js";
 import * as authService from "./auth.service.js";
-import { getSettings, updateSettings } from "../settings/settings.service.js";
+import * as teachersService from "../teachers/teachers.service.js";
+import { getSettings, toSettingsDto, updateSettings } from "../settings/settings.service.js";
 
 export const authRouter = Router();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 function paramId(req: Request, name: string): string {
   const value = req.params[name];
@@ -172,9 +180,7 @@ authRouter.get(
   async (_req, res, next) => {
     try {
       const settings = await getSettings();
-      res.json({
-        emailVerificationRequired: settings.emailVerificationRequired,
-      });
+      res.json(toSettingsDto(settings));
     } catch (err) {
       next(err);
     }
@@ -189,9 +195,7 @@ authRouter.patch(
   async (req, res, next) => {
     try {
       const settings = await updateSettings(req.body);
-      res.json({
-        emailVerificationRequired: settings.emailVerificationRequired,
-      });
+      res.json(toSettingsDto(settings));
     } catch (err) {
       next(err);
     }
@@ -240,6 +244,55 @@ authRouter.delete(
         req.body.reassignTeacherId,
       );
       res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+authRouter.get(
+  "/admin/teachers/:id",
+  requireAuth,
+  requireRoles("ADMIN"),
+  async (req, res, next) => {
+    try {
+      const profile = await teachersService.getTeacherProfile(paramId(req, "id"));
+      res.json({ profile });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+authRouter.post(
+  "/admin/teachers/:id/cv",
+  requireAuth,
+  requireRoles("ADMIN"),
+  upload.single("file"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) {
+        throw new AppError(400, "File is required", "VALIDATION_ERROR");
+      }
+      const profile = await teachersService.uploadTeacherCv(
+        paramId(req, "id"),
+        req.file,
+      );
+      res.json({ profile });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+authRouter.delete(
+  "/admin/teachers/:id/cv",
+  requireAuth,
+  requireRoles("ADMIN"),
+  async (req, res, next) => {
+    try {
+      const profile = await teachersService.deleteTeacherCv(paramId(req, "id"));
+      res.json({ profile });
     } catch (err) {
       next(err);
     }

@@ -42,6 +42,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Test Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     expect(res.status).toBe(201);
@@ -49,6 +50,21 @@ describe("Phase 1 — Auth", () => {
     expect(res.body.user.role).toBe("STUDENT");
     expect(res.body.user.email).toBe(email);
     expect(res.body.user.canAccessStudentPortal).toBe(true);
+
+    const profile = await prisma.studentProfile.findUnique({
+      where: { userId: res.body.user.id as string },
+    });
+    expect(profile?.phone).toBe("01700000001");
+  });
+
+  it("rejects registration without phone", async () => {
+    const email = uniqueEmail(PREFIX);
+    const res = await api(app).post("/api/v1/auth/register").send({
+      fullName: "Test Student",
+      email,
+      password: "Password#123",
+    });
+    expect(res.status).toBe(400);
   });
 
   it("rejects duplicate registration", async () => {
@@ -57,12 +73,14 @@ describe("Phase 1 — Auth", () => {
       fullName: "Test Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const res = await api(app).post("/api/v1/auth/register").send({
       fullName: "Test Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     expect(res.status).toBe(409);
@@ -75,6 +93,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Test Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const res = await api(app).post("/api/v1/auth/login").send({
@@ -103,6 +122,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Test Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const res = await api(app)
@@ -125,6 +145,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Unverified Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     expect(res.status).toBe(201);
@@ -139,6 +160,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Verify Me",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const userId = registered.body.user.id as string;
@@ -169,6 +191,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Student",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const res = await api(app)
@@ -265,6 +288,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "List Forbidden",
       email: studentEmail,
       password: "Password#123",
+      phone: "01700000001",
     });
     const forbidden = await api(app)
       .get("/api/v1/auth/admin/users")
@@ -278,6 +302,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Reset User",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const user = await prisma.user.findUniqueOrThrow({ where: { email } });
@@ -316,6 +341,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Logout User",
       email,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const cookie = registered.headers["set-cookie"];
@@ -344,6 +370,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Delete Student",
       email: studentEmail,
       password: "Password#123",
+      phone: "01700000001",
     });
     const studentId = student.body.user.id as string;
 
@@ -545,6 +572,7 @@ describe("Phase 1 — Auth", () => {
       fullName: "Cannot Delete",
       email: studentEmail,
       password: "Password#123",
+      phone: "01700000001",
     });
 
     const teacherEmail = uniqueEmail(`${PREFIX}.teacher`);

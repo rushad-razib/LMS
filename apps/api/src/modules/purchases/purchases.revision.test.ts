@@ -81,6 +81,7 @@ describe("LMS revision — seats, installments, access block", () => {
       fullName: "Revision Student",
       email,
       password: "Student12345!",
+      phone: "01700000001",
     });
     expect(reg.status).toBe(201);
     return {

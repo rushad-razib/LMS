@@ -32,4 +32,4 @@
 ## Acceptance criteria
 
 - [ ] Verification + batch emails deliver in staging with Resend  
-- [ ] Contact lead notifies admin  
+- [x] Contact lead notifies admin (attempted; Phase 6)  

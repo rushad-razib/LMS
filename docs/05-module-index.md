@@ -17,4 +17,4 @@
 
 ## Next
 
-Scaffold monorepo → implement by priority (Auth → Courses/Batches → Purchases → Portals → Admin).
+Phase 7 (hardening & launch prep). See [07-build-execution-map.md](07-build-execution-map.md).

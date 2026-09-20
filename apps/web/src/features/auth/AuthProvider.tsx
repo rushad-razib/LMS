@@ -14,7 +14,12 @@ type AuthState = {
   user: PublicUser | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<PublicUser>;
-  register: (fullName: string, email: string, password: string) => Promise<PublicUser>;
+  register: (
+    fullName: string,
+    email: string,
+    password: string,
+    phone: string,
+  ) => Promise<PublicUser>;
   logout: () => Promise<void>;
   refreshMe: () => Promise<void>;
 };
@@ -65,8 +70,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         applySession(session.accessToken, session.user);
         return session.user;
       },
-      async register(fullName, email, password) {
-        const session = await api.register({ fullName, email, password });
+      async register(fullName, email, password, phone) {
+        const session = await api.register({ fullName, email, password, phone });
         applySession(session.accessToken, session.user);
         return session.user;
       },

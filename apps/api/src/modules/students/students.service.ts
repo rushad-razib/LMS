@@ -178,11 +178,25 @@ export async function getStudentProfile(userId: string) {
     throw new AppError(403, "Student access only", "FORBIDDEN");
   }
 
+  const p = user.studentProfile;
   return {
     id: user.id,
     email: user.email,
     fullName: user.fullName,
-    phone: user.studentProfile?.phone ?? null,
+    phone: p?.phone ?? null,
+    whatsappPhone: p?.whatsappPhone ?? null,
+    dateOfBirth: p?.dateOfBirth
+      ? p.dateOfBirth.toISOString().slice(0, 10)
+      : null,
+    gender: p?.gender ?? null,
+    nidNumber: p?.nidNumber ?? null,
+    addressLine: p?.addressLine ?? null,
+    city: p?.city ?? null,
+    district: p?.district ?? null,
+    guardianName: p?.guardianName ?? null,
+    guardianPhone: p?.guardianPhone ?? null,
+    educationLevel: p?.educationLevel ?? null,
+    occupation: p?.occupation ?? null,
     emailVerifiedAt: user.emailVerifiedAt?.toISOString() ?? null,
   };
 }
@@ -199,14 +213,41 @@ export async function updateStudentProfile(
     throw new AppError(403, "Student access only", "FORBIDDEN");
   }
 
-  if (input.phone !== undefined) {
-    const phone = input.phone === "" ? null : input.phone;
-    await prisma.studentProfile.upsert({
-      where: { userId },
-      create: { userId, phone },
-      update: { phone },
-    });
-  }
+  const dateOfBirth =
+    input.dateOfBirth === undefined
+      ? undefined
+      : input.dateOfBirth === null
+        ? null
+        : new Date(`${input.dateOfBirth}T00:00:00.000Z`);
+
+  const data = {
+    phone: input.phone,
+    ...(input.whatsappPhone !== undefined
+      ? { whatsappPhone: input.whatsappPhone }
+      : {}),
+    ...(dateOfBirth !== undefined ? { dateOfBirth } : {}),
+    ...(input.gender !== undefined ? { gender: input.gender } : {}),
+    ...(input.nidNumber !== undefined ? { nidNumber: input.nidNumber } : {}),
+    ...(input.addressLine !== undefined ? { addressLine: input.addressLine } : {}),
+    ...(input.city !== undefined ? { city: input.city } : {}),
+    ...(input.district !== undefined ? { district: input.district } : {}),
+    ...(input.guardianName !== undefined
+      ? { guardianName: input.guardianName }
+      : {}),
+    ...(input.guardianPhone !== undefined
+      ? { guardianPhone: input.guardianPhone }
+      : {}),
+    ...(input.educationLevel !== undefined
+      ? { educationLevel: input.educationLevel }
+      : {}),
+    ...(input.occupation !== undefined ? { occupation: input.occupation } : {}),
+  };
+
+  await prisma.studentProfile.upsert({
+    where: { userId },
+    create: { userId, ...data },
+    update: data,
+  });
 
   return getStudentProfile(userId);
 }
