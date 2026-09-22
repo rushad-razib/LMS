@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { ThemeRoot } from "@/components/ThemeRoot";
 import { useAuth } from "@/features/auth/AuthProvider";
 
@@ -15,6 +16,7 @@ export function StudentLayout() {
 
   return (
     <ThemeRoot theme="light">
+      <Seo title="Student portal" path="/student" noindex />
       <div className="min-h-screen bg-surface text-ink">
         <header className="border-b border-border bg-surface-elevated">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">

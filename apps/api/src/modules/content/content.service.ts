@@ -13,6 +13,7 @@ import {
   getDownloadUrl,
   storeCmsImage,
 } from "../media/media.service.js";
+import { getSettings, toSettingsDto } from "../settings/settings.service.js";
 import { sanitizeBlogHtml, slugify } from "./html.js";
 
 async function uniqueBlogSlug(base: string, excludeId?: string) {
@@ -306,4 +307,31 @@ export async function uploadTrainerPhoto(id: string, file: Express.Multer.File) 
     data: { photoKey: stored.storageKey, photoUrl: url },
   });
   return serializeTrainer(row);
+}
+
+export async function uploadSettingsLogo(
+  slot: "header" | "footer",
+  file: Express.Multer.File,
+) {
+  const existing = await getSettings();
+  const kind = slot === "header" ? "settings-header" : "settings-footer";
+  const stored = await storeCmsImage({
+    kind,
+    entityId: "default",
+    originalName: file.originalname,
+    mimeType: file.mimetype,
+    buffer: file.buffer,
+  });
+  const url = await getDownloadUrl(stored.storageKey);
+  const previousKey =
+    slot === "header" ? existing.headerLogoKey : existing.footerLogoKey;
+  if (previousKey) await deleteStoredObject(previousKey);
+  const row = await prisma.websiteSettings.update({
+    where: { id: "default" },
+    data:
+      slot === "header"
+        ? { headerLogoKey: stored.storageKey, headerLogoUrl: url }
+        : { footerLogoKey: stored.storageKey, footerLogoUrl: url },
+  });
+  return toSettingsDto(row);
 }

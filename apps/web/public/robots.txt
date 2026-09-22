@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /teacher
+Disallow: /student
+Disallow: /login
+Disallow: /register
+Disallow: /verify-email
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /set-password
+Disallow: /checkout/
+
+Sitemap: https://lms.rushadrazib.com/sitemap.xml

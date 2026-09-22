@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Seo } from "@/components/Seo";
 import { api, type GalleryItem, ApiError } from "@/lib/api";
 
 export function GalleryPage() {
@@ -14,6 +15,11 @@ export function GalleryPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <Seo
+        title="Gallery"
+        description="Moments from AR Visionary Academy."
+        path="/gallery"
+      />
       <h1 className="font-display text-3xl font-semibold">Gallery</h1>
       <p className="mt-2 text-ink-muted">Moments from our academy.</p>
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}

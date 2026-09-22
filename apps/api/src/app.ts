@@ -20,6 +20,7 @@ import { internalRouter } from "./modules/internal/internal.routes.js";
 import { contentRouter } from "./modules/content/content.routes.js";
 import { noticesRouter } from "./modules/notices/notices.routes.js";
 import { contactRouter } from "./modules/contact/contact.routes.js";
+import { buildSitemapXml } from "./modules/seo/sitemap.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -44,6 +45,19 @@ export function createApp(env: Env) {
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
 
+  app.get("/sitemap.xml", async (_req, res, next) => {
+    try {
+      const xml = await buildSitemapXml(env);
+      res
+        .status(200)
+        .type("application/xml")
+        .set("Cache-Control", "public, max-age=300")
+        .send(xml);
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.use(`${API_PREFIX}/health`, healthRouter);
   app.use(`${API_PREFIX}/auth`, authRouter);
   app.use(`${API_PREFIX}/courses`, coursesRouter);
@@ -65,14 +79,22 @@ export function createApp(env: Env) {
   if (env.NODE_ENV === "production") {
     const webDist = path.resolve(__dirname, "../../../apps/web/dist");
     if (fs.existsSync(webDist)) {
-      app.use(express.static(webDist, { index: false, maxAge: "1h" }));
+      app.use(express.static(webDist, { index: "index.html", maxAge: "1h" }));
       app.use((req, res, next) => {
         if (req.method !== "GET" && req.method !== "HEAD") {
           next();
           return;
         }
-        if (req.path.startsWith("/api")) {
+        if (req.path.startsWith("/api") || req.path === "/sitemap.xml") {
           next();
+          return;
+        }
+        // Prefer prerendered route folder (e.g. /about → about/index.html) then SPA shell
+        const prerendered = path.join(webDist, req.path, "index.html");
+        if (req.path !== "/" && fs.existsSync(prerendered)) {
+          res.sendFile(prerendered, (err) => {
+            if (err) next(err);
+          });
           return;
         }
         res.sendFile(path.join(webDist, "index.html"), (err) => {

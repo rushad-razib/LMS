@@ -80,3 +80,7 @@ Or SSH and run a one-off after copying `apps/api` seed tooling — simplest path
 
 - https://lms.rushadrazib.com/
 - https://lms.rushadrazib.com/api/v1/health
+- https://lms.rushadrazib.com/robots.txt
+- https://lms.rushadrazib.com/sitemap.xml
+
+Full launch / backup checklist: [08-launch-checklist.md](08-launch-checklist.md).

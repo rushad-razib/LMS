@@ -8,6 +8,7 @@ import {
   type FieldErrors,
 } from "@/lib/formErrors";
 import { Field } from "@/components/Field";
+import { Seo } from "@/components/Seo";
 
 export function ContactPage() {
   const [settings, setSettings] = useState<PublicWebsiteSettings | null>(null);
@@ -65,6 +66,11 @@ export function ContactPage() {
 
   return (
     <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 lg:grid-cols-2">
+      <Seo
+        title="Contact"
+        description="Contact AR Visionary Academy — phone, WhatsApp, map, and inquiry form."
+        path="/contact"
+      />
       <div>
         <h1 className="font-display text-3xl font-semibold">Contact</h1>
         <p className="mt-2 text-ink-muted">

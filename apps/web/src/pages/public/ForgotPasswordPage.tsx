@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { ForgotPasswordInputSchema } from "@arva/shared";
 import { Field } from "@/components/Field";
+import { Seo } from "@/components/Seo";
 import { api } from "@/lib/api";
 import {
   applyApiFormError,
@@ -44,6 +45,7 @@ export function ForgotPasswordPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <Seo title="Forgot password" path="/forgot-password" noindex />
       <h1 className="font-display text-3xl font-bold">Forgot password</h1>
       <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">
         <Field label="Email" error={fieldErrors.email}>

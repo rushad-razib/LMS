@@ -162,6 +162,12 @@ model AuthToken {
 model WebsiteSettings {
   id                        String   @id @default("default")
   emailVerificationRequired Boolean  @default(true)
+  siteName                  String?
+  headerLogoKey             String?
+  headerLogoUrl             String?  @db.Text
+  footerLogoKey             String?
+  footerLogoUrl             String?  @db.Text
+  footerCopyright           String?  @db.Text
   contactPhone              String?
   contactEmail              String?
   address                   String?  @db.Text

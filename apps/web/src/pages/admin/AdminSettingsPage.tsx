@@ -11,6 +11,12 @@ import { Field } from "@/components/Field";
 
 const empty: WebsiteSettings = {
   emailVerificationRequired: true,
+  siteName: null,
+  headerLogoKey: null,
+  headerLogoUrl: null,
+  footerLogoKey: null,
+  footerLogoUrl: null,
+  footerCopyright: null,
   contactPhone: null,
   contactEmail: null,
   address: null,
@@ -30,6 +36,9 @@ export function AdminSettingsPage() {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [uploadingSlot, setUploadingSlot] = useState<"header" | "footer" | null>(
+    null,
+  );
 
   useEffect(() => {
     api
@@ -45,6 +54,22 @@ export function AdminSettingsPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   }
 
+  async function uploadLogo(slot: "header" | "footer", file: File | undefined) {
+    if (!file) return;
+    setUploadingSlot(slot);
+    setMessage(null);
+    setFormError(null);
+    try {
+      const { settings } = await api.adminUploadSettingsLogo(slot, file);
+      setForm(settings);
+      setMessage(`${slot === "header" ? "Header" : "Footer"} logo uploaded.`);
+    } catch (err) {
+      applyApiFormError(err, setFieldErrors, setFormError, "Logo upload failed");
+    } finally {
+      setUploadingSlot(null);
+    }
+  }
+
   async function save(e: FormEvent) {
     e.preventDefault();
     setMessage(null);
@@ -53,6 +78,8 @@ export function AdminSettingsPage() {
 
     const parsed = parseWithSchema(UpdateSettingsInputSchema, {
       emailVerificationRequired: form.emailVerificationRequired,
+      siteName: form.siteName ?? "",
+      footerCopyright: form.footerCopyright ?? "",
       contactPhone: form.contactPhone ?? "",
       contactEmail: form.contactEmail ?? "",
       address: form.address ?? "",
@@ -104,6 +131,77 @@ export function AdminSettingsPage() {
             </span>
           </span>
         </label>
+
+        <div className="space-y-3 border-t border-border pt-4">
+          <h2 className="font-display text-lg font-semibold">Branding</h2>
+          <p className="text-sm text-ink-muted">
+            Site name is shown when a logo is not set. Logos upload immediately
+            (PNG, JPEG, or WebP, max 2MB).
+          </p>
+
+          <Field label="Site name" error={fieldErrors.siteName}>
+            <input
+              value={form.siteName ?? ""}
+              onChange={(e) => setField("siteName", e.target.value || null)}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              placeholder="AR Visionary Academy"
+            />
+          </Field>
+
+          <Field label="Header logo">
+            {form.headerLogoUrl ? (
+              <img
+                src={form.headerLogoUrl}
+                alt="Header logo preview"
+                className="mb-2 h-10 max-w-[200px] object-contain"
+              />
+            ) : null}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={uploadingSlot !== null}
+              onChange={(e) => {
+                void uploadLogo("header", e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            {uploadingSlot === "header" ? (
+              <p className="mt-1 text-sm text-ink-muted">Uploading…</p>
+            ) : null}
+          </Field>
+
+          <Field label="Footer logo">
+            {form.footerLogoUrl ? (
+              <img
+                src={form.footerLogoUrl}
+                alt="Footer logo preview"
+                className="mb-2 h-10 max-w-[200px] object-contain"
+              />
+            ) : null}
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              disabled={uploadingSlot !== null}
+              onChange={(e) => {
+                void uploadLogo("footer", e.target.files?.[0]);
+                e.target.value = "";
+              }}
+            />
+            {uploadingSlot === "footer" ? (
+              <p className="mt-1 text-sm text-ink-muted">Uploading…</p>
+            ) : null}
+          </Field>
+
+          <Field label="Footer copyright" error={fieldErrors.footerCopyright}>
+            <textarea
+              value={form.footerCopyright ?? ""}
+              onChange={(e) => setField("footerCopyright", e.target.value || null)}
+              rows={2}
+              className="w-full rounded-lg border border-border bg-surface px-3 py-2"
+              placeholder="© 2026 AR Visionary Academy · AR Ventures"
+            />
+          </Field>
+        </div>
 
         <Field label="Announcement bar" error={fieldErrors.announcementBar}>
           <input

@@ -109,6 +109,8 @@ const optionalHttpUrl = z.preprocess(
 
 export const UpdateSettingsInputSchema = z.object({
   emailVerificationRequired: z.boolean().optional(),
+  siteName: optionalText(120),
+  footerCopyright: optionalText(500),
   contactPhone: optionalText(40),
   contactEmail: optionalEmail,
   address: optionalText(2000),

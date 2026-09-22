@@ -3,6 +3,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { ThemeRoot } from "@/components/ThemeRoot";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { api, type PublicWebsiteSettings } from "@/lib/api";
+import { SITE_NAME } from "@/lib/site";
 
 const links = [
   { to: "/", label: "Home", end: true },
@@ -13,6 +14,15 @@ const links = [
   { to: "/blog", label: "Blog" },
   { to: "/contact", label: "Contact" },
 ];
+
+function brandName(settings: PublicWebsiteSettings | null) {
+  return settings?.siteName?.trim() || SITE_NAME;
+}
+
+function defaultCopyright(settings: PublicWebsiteSettings | null) {
+  if (settings?.footerCopyright?.trim()) return settings.footerCopyright.trim();
+  return `© ${new Date().getFullYear()} ${brandName(settings)} · AR Ventures`;
+}
 
 export function MarketingLayout() {
   const { user, logout } = useAuth();
@@ -25,6 +35,8 @@ export function MarketingLayout() {
       .catch(() => setSettings(null));
   }, []);
 
+  const name = brandName(settings);
+
   return (
     <ThemeRoot theme="light">
       <div className="min-h-screen bg-surface text-ink">
@@ -35,8 +47,19 @@ export function MarketingLayout() {
         ) : null}
         <header className="sticky top-0 z-40 border-b border-border bg-surface-elevated/95 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-            <NavLink to="/" className="font-display text-lg font-semibold text-ink">
-              AR Visionary Academy
+            <NavLink
+              to="/"
+              className="flex items-center gap-2 font-display text-lg font-semibold text-ink"
+            >
+              {settings?.headerLogoUrl ? (
+                <img
+                  src={settings.headerLogoUrl}
+                  alt={name}
+                  className="h-9 w-auto max-w-50 object-contain"
+                />
+              ) : (
+                name
+              )}
             </NavLink>
             <nav className="flex flex-wrap items-center gap-1">
               {links.map((link) => (
@@ -101,8 +124,17 @@ export function MarketingLayout() {
           <Outlet />
         </main>
         <footer className="mt-16 border-t border-border bg-surface-elevated">
-          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-8 text-sm text-ink-muted md:flex-row md:justify-between">
-            <span>© {new Date().getFullYear()} AR Visionary Academy · AR Ventures</span>
+          <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-8 text-sm text-ink-muted md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-2">
+              {settings?.footerLogoUrl ? (
+                <img
+                  src={settings.footerLogoUrl}
+                  alt={name}
+                  className="h-8 w-auto max-w-40 object-contain"
+                />
+              ) : null}
+              <span>{defaultCopyright(settings)}</span>
+            </div>
             <span className="flex flex-wrap gap-3">
               <NavLink to="/privacy" className="hover:text-ink">
                 Privacy

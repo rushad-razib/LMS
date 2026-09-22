@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { api, type BlogPost, ApiError } from "@/lib/api";
 
 export function BlogPage() {
@@ -15,6 +16,11 @@ export function BlogPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <Seo
+        title="Blog"
+        description="News and insights from AR Visionary Academy."
+        path="/blog"
+      />
       <h1 className="font-display text-3xl font-semibold">Blog</h1>
       <p className="mt-2 text-ink-muted">News and insights from AR Visionary Academy.</p>
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}

@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { RegisterInputSchema } from "@arva/shared";
 import { Field } from "@/components/Field";
 import { PasswordField } from "@/components/PasswordField";
+import { Seo } from "@/components/Seo";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   applyApiFormError,
@@ -62,6 +63,7 @@ export function RegisterPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <Seo title="Register" path="/register" noindex />
       <h1 className="font-display text-3xl font-bold">Register</h1>
       <p className="mt-2 text-ink-muted">Create a student account to buy and join courses.</p>
       <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">

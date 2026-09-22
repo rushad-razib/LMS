@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ResetPasswordInputSchema } from "@arva/shared";
 import { PasswordField } from "@/components/PasswordField";
+import { Seo } from "@/components/Seo";
 import { api } from "@/lib/api";
 import {
   applyApiFormError,
@@ -46,6 +47,7 @@ export function ResetPasswordPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <Seo title="Reset password" path="/reset-password" noindex />
       <h1 className="font-display text-3xl font-bold">Reset password</h1>
       {!token ? (
         <p className="mt-4 text-sm text-red-600">Missing token.</p>

@@ -222,7 +222,13 @@ export async function storeTeacherCv(input: {
   };
 }
 
-export type CmsImageKind = "blog" | "gallery" | "trainer" | "teacher";
+export type CmsImageKind =
+  | "blog"
+  | "gallery"
+  | "trainer"
+  | "teacher"
+  | "settings-header"
+  | "settings-footer";
 
 export async function storeCmsImage(input: {
   kind: CmsImageKind;
@@ -246,7 +252,11 @@ export async function storeCmsImage(input: {
         ? `cms/gallery/${input.entityId}`
         : input.kind === "teacher"
           ? `teachers/${input.entityId}/photo`
-          : `cms/trainers/${input.entityId}`;
+          : input.kind === "settings-header"
+            ? `cms/settings/header`
+            : input.kind === "settings-footer"
+              ? `cms/settings/footer`
+              : `cms/trainers/${input.entityId}`;
   const storageKey = `${folder}/${id}.webp`;
   await putObject(storageKey, webp, "image/webp");
   return {

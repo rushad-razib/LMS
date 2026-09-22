@@ -1,8 +1,15 @@
 import type { UpdateSettingsInput } from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
+import { getDownloadUrl } from "../media/media.service.js";
 
 export type WebsiteSettingsDto = {
   emailVerificationRequired: boolean;
+  siteName: string | null;
+  headerLogoKey: string | null;
+  headerLogoUrl: string | null;
+  footerLogoKey: string | null;
+  footerLogoUrl: string | null;
+  footerCopyright: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
   address: string | null;
@@ -15,8 +22,14 @@ export type WebsiteSettingsDto = {
   announcementBar: string | null;
 };
 
-export function toSettingsDto(row: {
+type SettingsRow = {
   emailVerificationRequired: boolean;
+  siteName: string | null;
+  headerLogoKey: string | null;
+  headerLogoUrl: string | null;
+  footerLogoKey: string | null;
+  footerLogoUrl: string | null;
+  footerCopyright: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
   address: string | null;
@@ -27,9 +40,34 @@ export function toSettingsDto(row: {
   youtubeUrl: string | null;
   mapEmbedHtml: string | null;
   announcementBar: string | null;
-}): WebsiteSettingsDto {
+};
+
+async function resolveLogoUrl(
+  key: string | null,
+  fallback: string | null,
+): Promise<string | null> {
+  if (!key) return fallback;
+  try {
+    return await getDownloadUrl(key);
+  } catch (err) {
+    console.error("resolveLogoUrl failed", err);
+    return fallback;
+  }
+}
+
+export async function toSettingsDto(row: SettingsRow): Promise<WebsiteSettingsDto> {
+  const [headerLogoUrl, footerLogoUrl] = await Promise.all([
+    resolveLogoUrl(row.headerLogoKey, row.headerLogoUrl),
+    resolveLogoUrl(row.footerLogoKey, row.footerLogoUrl),
+  ]);
   return {
     emailVerificationRequired: row.emailVerificationRequired,
+    siteName: row.siteName,
+    headerLogoKey: row.headerLogoKey,
+    headerLogoUrl,
+    footerLogoKey: row.footerLogoKey,
+    footerLogoUrl,
+    footerCopyright: row.footerCopyright,
     contactPhone: row.contactPhone,
     contactEmail: row.contactEmail,
     address: row.address,
@@ -56,6 +94,8 @@ export async function updateSettings(input: UpdateSettingsInput) {
   if (input.emailVerificationRequired !== undefined) {
     data.emailVerificationRequired = input.emailVerificationRequired;
   }
+  if (input.siteName !== undefined) data.siteName = input.siteName;
+  if (input.footerCopyright !== undefined) data.footerCopyright = input.footerCopyright;
   if (input.contactPhone !== undefined) data.contactPhone = input.contactPhone;
   if (input.contactEmail !== undefined) data.contactEmail = input.contactEmail;
   if (input.address !== undefined) data.address = input.address;
@@ -72,6 +112,8 @@ export async function updateSettings(input: UpdateSettingsInput) {
     create: {
       id: "default",
       emailVerificationRequired: input.emailVerificationRequired ?? true,
+      siteName: input.siteName ?? null,
+      footerCopyright: input.footerCopyright ?? null,
       contactPhone: input.contactPhone ?? null,
       contactEmail: input.contactEmail ?? null,
       address: input.address ?? null,
@@ -89,16 +131,21 @@ export async function updateSettings(input: UpdateSettingsInput) {
 
 export async function getPublicSettings() {
   const settings = await getSettings();
+  const dto = await toSettingsDto(settings);
   return {
-    contactPhone: settings.contactPhone,
-    contactEmail: settings.contactEmail,
-    address: settings.address,
-    businessHours: settings.businessHours,
-    whatsappNumber: settings.whatsappNumber,
-    facebookUrl: settings.facebookUrl,
-    instagramUrl: settings.instagramUrl,
-    youtubeUrl: settings.youtubeUrl,
-    mapEmbedHtml: settings.mapEmbedHtml,
-    announcementBar: settings.announcementBar,
+    siteName: dto.siteName,
+    headerLogoUrl: dto.headerLogoUrl,
+    footerLogoUrl: dto.footerLogoUrl,
+    footerCopyright: dto.footerCopyright,
+    contactPhone: dto.contactPhone,
+    contactEmail: dto.contactEmail,
+    address: dto.address,
+    businessHours: dto.businessHours,
+    whatsappNumber: dto.whatsappNumber,
+    facebookUrl: dto.facebookUrl,
+    instagramUrl: dto.instagramUrl,
+    youtubeUrl: dto.youtubeUrl,
+    mapEmbedHtml: dto.mapEmbedHtml,
+    announcementBar: dto.announcementBar,
   };
 }

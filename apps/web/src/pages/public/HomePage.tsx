@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { APP_NAME } from "@arva/shared";
+import { Seo } from "@/components/Seo";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { DEFAULT_DESCRIPTION } from "@/lib/site";
 
 export function HomePage() {
   const { user } = useAuth();
@@ -23,6 +25,7 @@ export function HomePage() {
 
   return (
     <section className="relative overflow-hidden">
+      <Seo description={DEFAULT_DESCRIPTION} path="/" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(37,99,235,0.12),_transparent_55%)]" />
       <div className="relative mx-auto max-w-6xl px-4 py-20 md:py-28">
         <p className="text-sm font-semibold uppercase tracking-wider text-accent">

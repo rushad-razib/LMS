@@ -164,7 +164,18 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 **Tests:** `apps/api/src/modules/content/content.phase6.test.ts` — `pnpm test:api`
 
 ### Phase 7 — Hardening & launch prep
+**Status:** Complete  
 **Deliverable:** SPA meta/prerender where planned, Analytics hooks, backup notes, launch checklist pass
+
+- Per-route meta via `react-helmet-async` (`Seo` helper); portals/auth/checkout `noindex`  
+- Static marketing prerender after Vite build (`apps/web/scripts/prerender.mjs`)  
+- Env-gated GA (`VITE_GA_MEASUREMENT_ID`) + optional GSC meta; `public/robots.txt`  
+- Dynamic `GET /sitemap.xml` (static routes + published courses/blog)  
+- Ops: [08-launch-checklist.md](08-launch-checklist.md)  
+
+**Checkpoint:** `/sitemap.xml` lists public URLs; prerendered marketing HTML in `apps/web/dist`; GA stays off until measurement ID is set at build time.
+
+**Tests:** `apps/api/src/modules/seo/seo.phase7.test.ts` — `pnpm test:api`
 
 ---
 
@@ -173,6 +184,7 @@ Phase 7  Hardening (SEO, Analytics, backups checklist)
 - Final **theme color** refinement (dark admin/teacher, light public/student)  
 - Real copy, logos, trainer photos  
 - Production SSLCommerz / Resend / S3 credentials  
+- Complete [08-launch-checklist.md](08-launch-checklist.md) ops items (backups, restore drill, live credentials)  
 
 ## How each phase runs with you
 

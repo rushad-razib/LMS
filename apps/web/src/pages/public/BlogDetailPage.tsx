@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { api, type BlogPost, ApiError } from "@/lib/api";
 
 export function BlogDetailPage() {
@@ -18,6 +19,7 @@ export function BlogDetailPage() {
   if (error) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
+        <Seo title="Post not found" path={slug ? `/blog/${slug}` : "/blog"} noindex />
         <p className="text-red-600">{error}</p>
         <Link to="/blog" className="mt-4 inline-block text-accent">
           Back to blog
@@ -27,11 +29,22 @@ export function BlogDetailPage() {
   }
 
   if (!post) {
-    return <p className="mx-auto max-w-3xl px-4 py-12 text-ink-muted">Loading…</p>;
+    return (
+      <p className="mx-auto max-w-3xl px-4 py-12 text-ink-muted">
+        <Seo title="Blog" path={slug ? `/blog/${slug}` : "/blog"} />
+        Loading…
+      </p>
+    );
   }
 
   return (
     <article className="mx-auto max-w-3xl px-4 py-12">
+      <Seo
+        title={post.title}
+        description={post.excerpt || post.title}
+        path={`/blog/${post.slug}`}
+        image={post.coverImageUrl}
+      />
       <Link to="/blog" className="text-sm text-accent">
         ← Blog
       </Link>

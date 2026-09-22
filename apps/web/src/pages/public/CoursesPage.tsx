@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { api, type Course, ApiError } from "@/lib/api";
 
 export function CoursesPage() {
@@ -17,6 +18,11 @@ export function CoursesPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <Seo
+        title="Courses"
+        description="Browse practical programs from AR Visionary Academy — buy online, then get assigned to a live batch."
+        path="/courses"
+      />
       <h1 className="font-display text-3xl font-bold">Courses</h1>
       <p className="mt-2 text-ink-muted">
         Practical programs from AR Visionary Academy. Buy a course, then Admin assigns your

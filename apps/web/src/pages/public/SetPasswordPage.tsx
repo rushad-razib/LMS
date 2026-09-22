@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { SetPasswordInputSchema } from "@arva/shared";
 import { PasswordField } from "@/components/PasswordField";
+import { Seo } from "@/components/Seo";
 import { api } from "@/lib/api";
 import {
   applyApiFormError,
@@ -46,6 +47,7 @@ export function SetPasswordPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <Seo title="Set password" path="/set-password" noindex />
       <h1 className="font-display text-3xl font-bold">Set password</h1>
       <p className="mt-2 text-ink-muted">Complete your invited account.</p>
       {!token ? (

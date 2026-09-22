@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { api, type Course, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -69,12 +70,18 @@ export function CourseDetailPage() {
   }
 
   if (loading) {
-    return <div className="mx-auto max-w-3xl px-4 py-12 text-ink-muted">Loading…</div>;
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-12 text-ink-muted">
+        <Seo title="Course" path={slug ? `/courses/${slug}` : "/courses"} />
+        Loading…
+      </div>
+    );
   }
 
   if (error || !course) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-12">
+        <Seo title="Course not found" path={slug ? `/courses/${slug}` : "/courses"} noindex />
         <p className="text-red-600">{error ?? "Course not found"}</p>
         <Link to="/courses" className="mt-4 inline-block text-accent hover:underline">
           Back to courses
@@ -85,6 +92,12 @@ export function CourseDetailPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12">
+      <Seo
+        title={course.title}
+        description={course.overview.slice(0, 160) || course.title}
+        path={`/courses/${course.slug}`}
+        image={course.coverImageUrl}
+      />
       <Link to="/courses" className="text-sm text-accent hover:underline">
         ← Courses
       </Link>

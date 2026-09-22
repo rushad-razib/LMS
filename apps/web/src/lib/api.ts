@@ -235,6 +235,14 @@ export const api = {
     request<{ settings: PublicWebsiteSettings }>("/content/public/settings", {
       auth: false,
     }),
+  adminUploadSettingsLogo: (slot: "header" | "footer", file: File) => {
+    const body = new FormData();
+    body.append("file", file);
+    return request<{ settings: WebsiteSettings }>(
+      `/content/admin/settings/logo/${slot}`,
+      { method: "POST", body },
+    );
+  },
 
   listPublicBlog: () =>
     request<{ posts: BlogPost[] }>("/content/public/blog", { auth: false }),
@@ -848,6 +856,12 @@ export type TeacherProfile = {
 
 export type WebsiteSettings = {
   emailVerificationRequired: boolean;
+  siteName: string | null;
+  headerLogoKey: string | null;
+  headerLogoUrl: string | null;
+  footerLogoKey: string | null;
+  footerLogoUrl: string | null;
+  footerCopyright: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
   address: string | null;
@@ -860,10 +874,22 @@ export type WebsiteSettings = {
   announcementBar: string | null;
 };
 
-export type PublicWebsiteSettings = Omit<
-  WebsiteSettings,
-  "emailVerificationRequired"
->;
+export type PublicWebsiteSettings = {
+  siteName: string | null;
+  headerLogoUrl: string | null;
+  footerLogoUrl: string | null;
+  footerCopyright: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  address: string | null;
+  businessHours: string | null;
+  whatsappNumber: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  youtubeUrl: string | null;
+  mapEmbedHtml: string | null;
+  announcementBar: string | null;
+};
 
 export type BlogPost = {
   id: string;

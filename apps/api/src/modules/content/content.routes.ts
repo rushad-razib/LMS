@@ -299,7 +299,7 @@ contentRouter.get(
   async (_req, res, next) => {
     try {
       const settings = await getSettings();
-      res.json({ settings: toSettingsDto(settings) });
+      res.json({ settings: await toSettingsDto(settings) });
     } catch (err) {
       next(err);
     }
@@ -314,7 +314,39 @@ contentRouter.patch(
   async (req, res, next) => {
     try {
       const settings = await updateSettings(req.body);
-      res.json({ settings: toSettingsDto(settings) });
+      res.json({ settings: await toSettingsDto(settings) });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+contentRouter.post(
+  "/admin/settings/logo/header",
+  requireAuth,
+  requireRoles("ADMIN"),
+  upload.single("file"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) throw new AppError(400, "File is required", "VALIDATION_ERROR");
+      const settings = await contentService.uploadSettingsLogo("header", req.file);
+      res.json({ settings });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+contentRouter.post(
+  "/admin/settings/logo/footer",
+  requireAuth,
+  requireRoles("ADMIN"),
+  upload.single("file"),
+  async (req, res, next) => {
+    try {
+      if (!req.file) throw new AppError(400, "File is required", "VALIDATION_ERROR");
+      const settings = await contentService.uploadSettingsLogo("footer", req.file);
+      res.json({ settings });
     } catch (err) {
       next(err);
     }

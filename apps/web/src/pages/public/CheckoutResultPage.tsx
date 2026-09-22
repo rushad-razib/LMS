@@ -1,4 +1,5 @@
 import { Link, useSearchParams } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 
 type Kind = "success" | "fail" | "cancel";
 
@@ -30,6 +31,7 @@ export function CheckoutResultPage({ kind }: { kind: Kind }) {
 
   return (
     <div className="mx-auto max-w-lg px-4 py-16 text-center">
+      <Seo title={c.title} path={`/checkout/${kind}`} noindex />
       <h1 className={`font-display text-3xl font-bold ${c.tone}`}>{c.title}</h1>
       <p className="mt-3 text-ink-muted">{c.body}</p>
       {tranId ? (

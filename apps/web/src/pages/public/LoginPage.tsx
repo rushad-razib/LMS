@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { LoginInputSchema } from "@arva/shared";
 import { Field } from "@/components/Field";
 import { PasswordField } from "@/components/PasswordField";
+import { Seo } from "@/components/Seo";
 import { useAuth } from "@/features/auth/AuthProvider";
 import {
   applyApiFormError,
@@ -59,6 +60,7 @@ export function LoginPage() {
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
+      <Seo title="Login" path="/login" noindex />
       <h1 className="font-display text-3xl font-bold">Login</h1>
       <p className="mt-2 text-ink-muted">Sign in to your AR Visionary Academy account.</p>
       <form noValidate onSubmit={onSubmit} className="mt-8 space-y-4">

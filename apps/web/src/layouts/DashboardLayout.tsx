@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { Seo } from "@/components/Seo";
 import { ThemeRoot } from "@/components/ThemeRoot";
 import { useAuth } from "@/features/auth/AuthProvider";
 
@@ -19,6 +20,11 @@ export function DashboardLayout({ portal, title, nav }: DashboardLayoutProps) {
 
   return (
     <ThemeRoot theme="dark">
+      <Seo
+        title={title}
+        path={portal === "admin" ? "/admin" : "/teacher"}
+        noindex
+      />
       <div className="flex min-h-screen bg-surface text-ink">
         <aside className="hidden w-64 shrink-0 border-r border-border bg-surface-elevated md:flex md:flex-col">
           <div className="border-b border-border px-4 py-5">

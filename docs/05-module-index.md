@@ -17,4 +17,8 @@
 
 ## Next
 
-Phase 7 (hardening & launch prep). See [07-build-execution-map.md](07-build-execution-map.md).
+- Launch ops — [08-launch-checklist.md](08-launch-checklist.md)
+- Company operators — [09-company-user-guide.md](09-company-user-guide.md)
+- SEO team — [10-seo-operator-guide.md](10-seo-operator-guide.md)
+
+Feature phases 0–7 are complete per [07-build-execution-map.md](07-build-execution-map.md).

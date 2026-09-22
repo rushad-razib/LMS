@@ -180,7 +180,7 @@ authRouter.get(
   async (_req, res, next) => {
     try {
       const settings = await getSettings();
-      res.json(toSettingsDto(settings));
+      res.json(await toSettingsDto(settings));
     } catch (err) {
       next(err);
     }
@@ -195,7 +195,7 @@ authRouter.patch(
   async (req, res, next) => {
     try {
       const settings = await updateSettings(req.body);
-      res.json(toSettingsDto(settings));
+      res.json(await toSettingsDto(settings));
     } catch (err) {
       next(err);
     }

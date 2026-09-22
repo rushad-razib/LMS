@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Seo } from "@/components/Seo";
 import { api, type MarketingTrainer, ApiError } from "@/lib/api";
 
 export function TrainersPage() {
@@ -14,6 +15,11 @@ export function TrainersPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-12">
+      <Seo
+        title="Trainers"
+        description="Meet the AR Visionary Academy teaching team."
+        path="/trainers"
+      />
       <h1 className="font-display text-3xl font-semibold">Trainers</h1>
       <p className="mt-2 text-ink-muted">Meet our teaching team.</p>
       {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
