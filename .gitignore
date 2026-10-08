@@ -43,3 +43,4 @@ uploads/
 
 # Keep root project README publishable when you remove the rules above.
 # During Phase 0, root README.md is local-only per planning preference.
+/docs/
