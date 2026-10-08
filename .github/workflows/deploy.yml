@@ -44,6 +44,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Puppeteer does not use the runner's Chrome. Prerender needs the
+      # revision it expects under ~/.cache/puppeteer (not cached with pnpm).
+      - name: Install Chrome for prerender
+        run: pnpm --filter @arva/web exec puppeteer browsers install chrome
+
       # prisma generate (via api build) only needs a URL shape, not a live DB
       - name: Build
         run: pnpm build
