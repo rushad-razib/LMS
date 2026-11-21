@@ -3,7 +3,13 @@ import { useParams } from "react-router-dom";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CreateLiveSessionInputSchema,
+  SESSION_TYPE_LABELS,
+  SESSION_TYPES,
+  SessionType,
   UpdateLiveSessionInputSchema,
+  WEEKDAY_LABELS,
+  WEEKDAYS,
+  type Weekday,
 } from "@arva/shared";
 import { api, ApiError, type TeacherLiveSession } from "@/lib/api";
 import {
@@ -14,7 +20,8 @@ import {
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
-import { DateTimeField } from "@/components/DateField";
+import { DateField, DateTimeField } from "@/components/DateField";
+import { TeacherAttendanceModal } from "./TeacherAttendanceModal";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
@@ -43,8 +50,13 @@ export function TeacherSessionsPage() {
   const [title, setTitle] = useState("");
   const [startsAt, setStartsAt] = useState("");
   const [endsAt, setEndsAt] = useState("");
+  const [sessionType, setSessionType] = useState<number>(SessionType.Online);
   const [meetingUrl, setMeetingUrl] = useState("");
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
+  const [weekdays, setWeekdays] = useState<Weekday[]>([WEEKDAYS[0]]);
+  const [until, setUntil] = useState("");
   const [notes, setNotes] = useState("");
+  const [attendanceSessionId, setAttendanceSessionId] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,7 +78,11 @@ export function TeacherSessionsPage() {
     setTitle("");
     setStartsAt("");
     setEndsAt("");
+    setSessionType(SessionType.Online);
     setMeetingUrl("");
+    setRepeatWeekly(false);
+    setWeekdays([WEEKDAYS[0]]);
+    setUntil("");
     setNotes("");
     setFieldErrors({});
     setFormError(null);
@@ -86,7 +102,9 @@ export function TeacherSessionsPage() {
     setTitle(session.title);
     setStartsAt(toDateTimeLocal(session.startsAt));
     setEndsAt(session.endsAt ? toDateTimeLocal(session.endsAt) : "");
-    setMeetingUrl(session.meetingUrl);
+    setSessionType(session.sessionType);
+    setMeetingUrl(session.meetingUrl ?? "");
+    setRepeatWeekly(false);
     setNotes(session.notes ?? "");
     setModalOpen(true);
   }
@@ -98,12 +116,26 @@ export function TeacherSessionsPage() {
     setFormError(null);
     setSaving(true);
 
+    if (!editingId && repeatWeekly && weekdays.length === 0) {
+      setFieldErrors({ weekly: "Select at least one weekday" });
+      setSaving(false);
+      return;
+    }
+    if (!editingId && repeatWeekly && !until) {
+      setFieldErrors({ "weekly.until": "Choose an end date" });
+      setSaving(false);
+      return;
+    }
+
     const payload = {
       title,
       startsAt: fromDateTimeLocal(startsAt),
       endsAt: endsAt ? fromDateTimeLocal(endsAt) : null,
-      meetingUrl,
+      sessionType,
+      meetingUrl: sessionType === SessionType.Online ? meetingUrl : null,
       notes: notes.trim() || null,
+      weekly:
+        !editingId && repeatWeekly ? { weekdays, until } : null,
     };
 
     try {
@@ -123,8 +155,12 @@ export function TeacherSessionsPage() {
           setFormError(parsed.formError);
           return;
         }
-        await api.teacherCreateSession(id, parsed.data);
-        toast.success("Session created");
+        const created = await api.teacherCreateSession(id, parsed.data);
+        toast.success(
+          created.sessions.length > 1
+            ? `${created.sessions.length} classes created`
+            : "Session created",
+        );
       }
       setModalOpen(false);
       resetForm();
@@ -169,6 +205,11 @@ export function TeacherSessionsPage() {
         cell: ({ row }) => (
           <div>
             <p className="font-medium">{row.original.title}</p>
+            <p className="text-xs text-ink-muted">
+              {row.original.sessionType === SessionType.Online
+                ? SESSION_TYPE_LABELS[SessionType.Online]
+                : SESSION_TYPE_LABELS[SessionType.Offline]}
+            </p>
             {row.original.notes ? (
               <p className="text-xs text-ink-muted">{row.original.notes}</p>
             ) : null}
@@ -192,14 +233,23 @@ export function TeacherSessionsPage() {
         enableSorting: false,
         cell: ({ row }) => (
           <div className="flex flex-wrap gap-2">
-            <a
-              href={row.original.meetingUrl}
-              target="_blank"
-              rel="noreferrer"
+            {row.original.sessionType === SessionType.Online && row.original.meetingUrl ? (
+              <a
+                href={row.original.meetingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
+              >
+                Join
+              </a>
+            ) : null}
+            <button
+              type="button"
               className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
+              onClick={() => setAttendanceSessionId(row.original.id)}
             >
-              Join
-            </a>
+              Attendance
+            </button>
             <button
               type="button"
               className="rounded-lg border border-border px-2 py-1 text-xs hover:border-accent hover:bg-surface hover:text-accent"
@@ -225,7 +275,7 @@ export function TeacherSessionsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Live sessions"
-        description="Dated Meet/Zoom classes for this batch. Ordered by start time."
+        description="Online or offline classes for this batch. Ordered by start time."
         actionLabel="+ Add session"
         onAction={openCreate}
       />
@@ -252,20 +302,76 @@ export function TeacherSessionsPage() {
               onChange={(e) => setTitle(e.target.value)}
             />
           </Field>
+          <Field label="Type" error={fieldErrors.sessionType}>
+            <select
+              className={inputClass}
+              value={sessionType}
+              onChange={(e) => setSessionType(Number(e.target.value))}
+            >
+              {SESSION_TYPES.map((type) => (
+                <option key={type} value={type}>
+                  {SESSION_TYPE_LABELS[type]}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Starts" error={fieldErrors.startsAt}>
             <DateTimeField className={inputClass} value={startsAt} onChange={setStartsAt} />
           </Field>
           <Field label="Ends (optional)" error={fieldErrors.endsAt}>
             <DateTimeField className={inputClass} value={endsAt} onChange={setEndsAt} />
           </Field>
-          <Field label="Meeting URL" error={fieldErrors.meetingUrl}>
-            <input
-              className={inputClass}
-              placeholder="https://meet.google.com/…"
-              value={meetingUrl}
-              onChange={(e) => setMeetingUrl(e.target.value)}
-            />
-          </Field>
+          {!editingId ? (
+            <label className="flex items-center gap-2 text-sm text-ink">
+              <input
+                type="checkbox"
+                checked={repeatWeekly}
+                onChange={(e) => setRepeatWeekly(e.target.checked)}
+              />
+              Repeat weekly
+            </label>
+          ) : null}
+          {!editingId && repeatWeekly ? (
+            <>
+              <fieldset className="grid gap-2">
+                <legend className="text-sm font-medium text-ink-muted">Weekdays</legend>
+                <div className="flex flex-wrap gap-2">
+                  {WEEKDAYS.map((day) => (
+                    <label key={day} className="flex items-center gap-1 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={weekdays.includes(day)}
+                        onChange={(e) => {
+                          setWeekdays((current) =>
+                            e.target.checked
+                              ? [...current, day]
+                              : current.filter((value) => value !== day),
+                          );
+                        }}
+                      />
+                      {WEEKDAY_LABELS[day]}
+                    </label>
+                  ))}
+                </div>
+                {fieldErrors.weekly ? (
+                  <p className="text-xs text-red-400">{fieldErrors.weekly}</p>
+                ) : null}
+              </fieldset>
+              <Field label="Repeat until" error={fieldErrors["weekly.until"]}>
+                <DateField className={inputClass} value={until} onChange={setUntil} />
+              </Field>
+            </>
+          ) : null}
+          {sessionType === SessionType.Online ? (
+            <Field label="Meeting URL" error={fieldErrors.meetingUrl}>
+              <input
+                className={inputClass}
+                placeholder="https://meet.google.com/…"
+                value={meetingUrl}
+                onChange={(e) => setMeetingUrl(e.target.value)}
+              />
+            </Field>
+          ) : null}
           <Field label="Notes" error={fieldErrors.notes}>
             <textarea
               className={inputClass}
@@ -284,6 +390,13 @@ export function TeacherSessionsPage() {
           </button>
         </form>
       </Modal>
+      {id ? (
+        <TeacherAttendanceModal
+          batchId={id}
+          sessionId={attendanceSessionId}
+          onClose={() => setAttendanceSessionId(null)}
+        />
+      ) : null}
     </div>
   );
 }

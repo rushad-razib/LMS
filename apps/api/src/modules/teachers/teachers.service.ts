@@ -1,9 +1,13 @@
-import type {
-  CreateAnnouncementInput,
-  CreateLiveSessionInput,
-  UpdateAnnouncementInput,
-  UpdateLiveSessionInput,
-  UpdateTeacherProfileInput,
+import {
+  SessionType,
+  Weekday,
+  type CreateAnnouncementInput,
+  type CreateLiveSessionInput,
+  type SaveSessionAttendanceInput,
+  type UpdateAnnouncementInput,
+  type UpdateLiveSessionInput,
+  type UpdateTeacherProfileInput,
+  type Weekday as WeekdayValue,
 } from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
 import { AppError } from "../../common/errors.js";
@@ -30,6 +34,95 @@ function normalizeMeetingUrl(raw: string) {
   } catch {
     throw new AppError(400, "Invalid meeting URL", "VALIDATION_ERROR");
   }
+}
+
+const MAX_WEEKLY_CLASSES = 200;
+
+const JS_DAY_TO_WEEKDAY = [
+  Weekday.Sunday,
+  Weekday.Monday,
+  Weekday.Tuesday,
+  Weekday.Wednesday,
+  Weekday.Thursday,
+  Weekday.Friday,
+  Weekday.Saturday,
+] as const;
+
+function weekdayOf(date: Date): WeekdayValue {
+  return JS_DAY_TO_WEEKDAY[date.getDay()] ?? Weekday.Sunday;
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function addLocalDays(date: Date, days: number) {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
+
+function parseUntilDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+    if (
+      date.getFullYear() !== year ||
+      date.getMonth() !== month - 1 ||
+      date.getDate() !== day
+    ) {
+      throw new AppError(400, "Invalid until", "VALIDATION_ERROR");
+    }
+    return date;
+  }
+  return startOfLocalDay(parseDate(value, "until"));
+}
+
+function weeklyStarts(startsAt: Date, until: Date, weekdays: WeekdayValue[]) {
+  const selected = new Set(weekdays);
+  const end = startOfLocalDay(until);
+  const cursor = startOfLocalDay(startsAt);
+  if (end.getTime() < cursor.getTime()) {
+    throw new AppError(
+      400,
+      "Until date must be on or after the start date",
+      "VALIDATION_ERROR",
+    );
+  }
+  const dates: Date[] = [];
+  for (let day = cursor; day.getTime() <= end.getTime(); day = addLocalDays(day, 1)) {
+    if (!selected.has(weekdayOf(day))) continue;
+    const at = new Date(day);
+    at.setHours(startsAt.getHours(), startsAt.getMinutes(), 0, 0);
+    dates.push(at);
+    if (dates.length > MAX_WEEKLY_CLASSES) {
+      throw new AppError(
+        400,
+        `Weekly repeat creates more than ${MAX_WEEKLY_CLASSES} classes. Choose a shorter range.`,
+        "VALIDATION_ERROR",
+      );
+    }
+  }
+  if (dates.length === 0) {
+    throw new AppError(
+      400,
+      "No classes fall on the selected weekdays in that range",
+      "VALIDATION_ERROR",
+    );
+  }
+  return dates;
+}
+
+function meetingUrlFor(sessionType: number, meetingUrl: string | null | undefined) {
+  if (sessionType === SessionType.Offline) return null;
+  const raw = meetingUrl?.trim() ?? "";
+  if (!raw) {
+    throw new AppError(400, "Meeting URL is required for online classes", "VALIDATION_ERROR");
+  }
+  return normalizeMeetingUrl(raw);
 }
 
 function emptyToNull(value: string | null | undefined) {
@@ -59,7 +152,8 @@ function serializeSession(session: {
   title: string;
   startsAt: Date;
   endsAt: Date | null;
-  meetingUrl: string;
+  sessionType: number;
+  meetingUrl: string | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -69,6 +163,7 @@ function serializeSession(session: {
     title: session.title,
     startsAt: session.startsAt.toISOString(),
     endsAt: session.endsAt?.toISOString() ?? null,
+    sessionType: session.sessionType,
     meetingUrl: session.meetingUrl,
     notes: session.notes,
     createdAt: session.createdAt.toISOString(),
@@ -198,17 +293,30 @@ export async function createSession(
     throw new AppError(400, "End time must be after start time", "VALIDATION_ERROR");
   }
 
-  const session = await prisma.liveSession.create({
-    data: {
-      batchId,
-      title: input.title,
-      startsAt,
-      endsAt,
-      meetingUrl: normalizeMeetingUrl(input.meetingUrl),
-      notes: emptyToNull(input.notes) ?? null,
-    },
-  });
-  return serializeSession(session);
+  const meetingUrl = meetingUrlFor(input.sessionType, input.meetingUrl);
+  const notes = emptyToNull(input.notes) ?? null;
+  const durationMs = endsAt ? endsAt.getTime() - startsAt.getTime() : null;
+  const starts = input.weekly
+    ? weeklyStarts(startsAt, parseUntilDate(input.weekly.until), input.weekly.weekdays)
+    : [startsAt];
+
+  const created = await prisma.$transaction(
+    starts.map((start) =>
+      prisma.liveSession.create({
+        data: {
+          batchId,
+          title: input.title,
+          startsAt: start,
+          endsAt: durationMs === null ? null : new Date(start.getTime() + durationMs),
+          sessionType: input.sessionType,
+          meetingUrl,
+          notes,
+        },
+      }),
+    ),
+  );
+  const sessions = created.map(serializeSession);
+  return { session: sessions[0]!, sessions };
 }
 
 export async function updateSession(
@@ -238,15 +346,23 @@ export async function updateSession(
     throw new AppError(400, "End time must be after start time", "VALIDATION_ERROR");
   }
 
+  const sessionType = input.sessionType ?? existing.sessionType;
+  const meetingUrl =
+    sessionType === SessionType.Offline
+      ? null
+      : meetingUrlFor(
+          sessionType,
+          input.meetingUrl === undefined ? existing.meetingUrl : input.meetingUrl,
+        );
+
   const session = await prisma.liveSession.update({
     where: { id: sessionId },
     data: {
       title: input.title ?? existing.title,
       startsAt,
       endsAt,
-      meetingUrl: input.meetingUrl
-        ? normalizeMeetingUrl(input.meetingUrl)
-        : existing.meetingUrl,
+      sessionType,
+      meetingUrl,
       notes:
         input.notes === undefined ? existing.notes : emptyToNull(input.notes) ?? null,
     },
@@ -268,6 +384,145 @@ export async function deleteSession(
   }
   await prisma.liveSession.delete({ where: { id: sessionId } });
   return { ok: true as const };
+}
+
+async function participationPercents(batchId: string, userIds: string[]) {
+  const held = await prisma.liveSession.findMany({
+    where: { batchId, startsAt: { lte: new Date() } },
+    select: { id: true },
+  });
+  if (held.length === 0) {
+    return new Map(userIds.map((id) => [id, null as number | null]));
+  }
+  const present = await prisma.sessionAttendance.groupBy({
+    by: ["userId"],
+    where: {
+      userId: { in: userIds },
+      present: true,
+      sessionId: { in: held.map((session) => session.id) },
+    },
+    _count: { _all: true },
+  });
+  const counts = new Map(present.map((row) => [row.userId, row._count._all]));
+  return new Map(
+    userIds.map((id) => {
+      const markedPresent = counts.get(id) ?? 0;
+      return [id, Math.round((markedPresent / held.length) * 100)] as const;
+    }),
+  );
+}
+
+async function activeBatchStudents(batchId: string) {
+  const enrollments = await prisma.enrollment.findMany({
+    where: { batchId, status: "ACTIVE" },
+    include: { user: { select: { id: true, fullName: true, email: true } } },
+    orderBy: { user: { fullName: "asc" } },
+  });
+  const ratings = await participationPercents(
+    batchId,
+    enrollments.map((enrollment) => enrollment.userId),
+  );
+  return enrollments.map((enrollment) => ({
+    userId: enrollment.user.id,
+    fullName: enrollment.user.fullName,
+    email: enrollment.user.email,
+    participationPercent: ratings.get(enrollment.userId) ?? null,
+  }));
+}
+
+export async function listBatchStudents(teacherId: string, batchId: string) {
+  await requireAssignedBatch(teacherId, batchId);
+  const students = await activeBatchStudents(batchId);
+  return students;
+}
+
+export async function getSessionAttendance(
+  teacherId: string,
+  batchId: string,
+  sessionId: string,
+) {
+  await requireAssignedBatch(teacherId, batchId);
+  const session = await prisma.liveSession.findFirst({
+    where: { id: sessionId, batchId },
+  });
+  if (!session) {
+    throw new AppError(404, "Session not found", "NOT_FOUND");
+  }
+  const [students, marks] = await Promise.all([
+    activeBatchStudents(batchId),
+    prisma.sessionAttendance.findMany({ where: { sessionId } }),
+  ]);
+  const presentByUser = new Map(marks.map((mark) => [mark.userId, mark.present]));
+  return {
+    session: serializeSession(session),
+    students: students.map((student) => ({
+      ...student,
+      present: presentByUser.get(student.userId) ?? false,
+    })),
+  };
+}
+
+export async function saveSessionAttendance(
+  teacherId: string,
+  batchId: string,
+  sessionId: string,
+  input: SaveSessionAttendanceInput,
+) {
+  await requireAssignedBatch(teacherId, batchId);
+  const session = await prisma.liveSession.findFirst({
+    where: { id: sessionId, batchId },
+    select: { id: true },
+  });
+  if (!session) {
+    throw new AppError(404, "Session not found", "NOT_FOUND");
+  }
+  const enrolled = await prisma.enrollment.findMany({
+    where: { batchId, status: "ACTIVE" },
+    select: { userId: true },
+  });
+  const allowed = new Set(enrolled.map((row) => row.userId));
+  for (const mark of input.marks) {
+    if (!allowed.has(mark.userId)) {
+      throw new AppError(400, "Student is not enrolled in this batch", "VALIDATION_ERROR");
+    }
+  }
+
+  await prisma.$transaction(
+    input.marks.map((mark) =>
+      prisma.sessionAttendance.upsert({
+        where: { sessionId_userId: { sessionId, userId: mark.userId } },
+        create: { sessionId, userId: mark.userId, present: mark.present },
+        update: { present: mark.present },
+      }),
+    ),
+  );
+  return getSessionAttendance(teacherId, batchId, sessionId);
+}
+
+export async function listSchedule(teacherId: string, month: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(month);
+  if (!match) {
+    throw new AppError(400, "Month must be YYYY-MM", "VALIDATION_ERROR");
+  }
+  const year = Number(match[1]);
+  const monthIndex = Number(match[2]) - 1;
+  if (monthIndex < 0 || monthIndex > 11) {
+    throw new AppError(400, "Month must be YYYY-MM", "VALIDATION_ERROR");
+  }
+  const from = new Date(year, monthIndex, 1);
+  const to = new Date(year, monthIndex + 1, 1);
+  const sessions = await prisma.liveSession.findMany({
+    where: {
+      startsAt: { gte: from, lt: to },
+      batch: { teacherId },
+    },
+    include: { batch: { select: { id: true, name: true } } },
+    orderBy: { startsAt: "asc" },
+  });
+  return sessions.map((session) => ({
+    ...serializeSession(session),
+    batch: session.batch,
+  }));
 }
 
 export async function listMaterials(teacherId: string, batchId: string) {

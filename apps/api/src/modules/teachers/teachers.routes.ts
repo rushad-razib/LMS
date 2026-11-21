@@ -4,6 +4,7 @@ import multer from "multer";
 import {
   CreateAnnouncementInputSchema,
   CreateLiveSessionInputSchema,
+  SaveSessionAttendanceInputSchema,
   UpdateAnnouncementInputSchema,
   UpdateLiveSessionInputSchema,
   UpdateTeacherProfileInputSchema,
@@ -28,6 +29,16 @@ function paramId(req: Request, name: string): string {
 }
 
 teachersRouter.use(requireAuth, requireRoles("TEACHER"));
+
+teachersRouter.get("/schedule", async (req, res, next) => {
+  try {
+    const month = typeof req.query.month === "string" ? req.query.month : "";
+    const sessions = await teachersService.listSchedule(req.user!.id, month);
+    res.json({ sessions });
+  } catch (err) {
+    next(err);
+  }
+});
 
 teachersRouter.get("/batches", async (req, res, next) => {
   try {
@@ -64,12 +75,12 @@ teachersRouter.post(
   validateBody(CreateLiveSessionInputSchema),
   async (req, res, next) => {
     try {
-      const session = await teachersService.createSession(
+      const created = await teachersService.createSession(
         req.user!.id,
         paramId(req, "id"),
         req.body,
       );
-      res.status(201).json({ session });
+      res.status(201).json(created);
     } catch (err) {
       next(err);
     }
@@ -106,6 +117,49 @@ teachersRouter.delete("/batches/:id/sessions/:sessionId", async (req, res, next)
     next(err);
   }
 });
+
+teachersRouter.get("/batches/:id/students", async (req, res, next) => {
+  try {
+    const students = await teachersService.listBatchStudents(
+      req.user!.id,
+      paramId(req, "id"),
+    );
+    res.json({ students });
+  } catch (err) {
+    next(err);
+  }
+});
+
+teachersRouter.get("/batches/:id/sessions/:sessionId/attendance", async (req, res, next) => {
+  try {
+    const attendance = await teachersService.getSessionAttendance(
+      req.user!.id,
+      paramId(req, "id"),
+      paramId(req, "sessionId"),
+    );
+    res.json(attendance);
+  } catch (err) {
+    next(err);
+  }
+});
+
+teachersRouter.put(
+  "/batches/:id/sessions/:sessionId/attendance",
+  validateBody(SaveSessionAttendanceInputSchema),
+  async (req, res, next) => {
+    try {
+      const attendance = await teachersService.saveSessionAttendance(
+        req.user!.id,
+        paramId(req, "id"),
+        paramId(req, "sessionId"),
+        req.body,
+      );
+      res.json(attendance);
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 teachersRouter.get("/batches/:id/materials", async (req, res, next) => {
   try {

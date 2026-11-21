@@ -356,23 +356,128 @@ export const UpdateTeacherProfileInputSchema = z.object({
 });
 export type UpdateTeacherProfileInput = z.infer<typeof UpdateTeacherProfileInputSchema>;
 
-export const CreateLiveSessionInputSchema = z.object({
-  title: z.string().trim().min(2).max(200),
-  startsAt: z.string().trim().min(1),
-  endsAt: z.string().trim().min(1).optional().nullable(),
-  meetingUrl: z.string().trim().min(8).max(2000),
-  notes: z.string().trim().max(8000).optional().nullable(),
+export const SessionType = {
+  Online: 1,
+  Offline: 2,
+} as const;
+export type SessionType = (typeof SessionType)[keyof typeof SessionType];
+export const SESSION_TYPES = [SessionType.Online, SessionType.Offline] as const;
+
+export const SESSION_TYPE_LABELS: Record<SessionType, string> = {
+  [SessionType.Online]: "Online",
+  [SessionType.Offline]: "Offline",
+};
+
+export const Weekday = {
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6,
+  Sunday: 7,
+} as const;
+export type Weekday = (typeof Weekday)[keyof typeof Weekday];
+export const WEEKDAYS = [
+  Weekday.Monday,
+  Weekday.Tuesday,
+  Weekday.Wednesday,
+  Weekday.Thursday,
+  Weekday.Friday,
+  Weekday.Saturday,
+  Weekday.Sunday,
+] as const;
+
+export const WEEKDAY_LABELS: Record<Weekday, string> = {
+  [Weekday.Monday]: "Monday",
+  [Weekday.Tuesday]: "Tuesday",
+  [Weekday.Wednesday]: "Wednesday",
+  [Weekday.Thursday]: "Thursday",
+  [Weekday.Friday]: "Friday",
+  [Weekday.Saturday]: "Saturday",
+  [Weekday.Sunday]: "Sunday",
+};
+
+const SessionTypeSchema = z.union([
+  z.literal(SessionType.Online),
+  z.literal(SessionType.Offline),
+]);
+
+const WeekdaySchema = z.union([
+  z.literal(Weekday.Monday),
+  z.literal(Weekday.Tuesday),
+  z.literal(Weekday.Wednesday),
+  z.literal(Weekday.Thursday),
+  z.literal(Weekday.Friday),
+  z.literal(Weekday.Saturday),
+  z.literal(Weekday.Sunday),
+]);
+
+const meetingUrlSchema = z.string().trim().max(2000).optional().nullable();
+
+export const WeeklySessionInputSchema = z.object({
+  weekdays: z.array(WeekdaySchema).min(1),
+  until: z.string().trim().min(1),
 });
+export type WeeklySessionInput = z.infer<typeof WeeklySessionInputSchema>;
+
+function requireOnlineMeetingUrl(
+  value: { sessionType?: SessionType; meetingUrl?: string | null },
+  ctx: z.RefinementCtx,
+) {
+  if (value.sessionType !== SessionType.Online) return;
+  const url = value.meetingUrl?.trim() ?? "";
+  if (url.length < 8) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["meetingUrl"],
+      message: "Meeting URL is required for online classes",
+    });
+  }
+}
+
+export const CreateLiveSessionInputSchema = z
+  .object({
+    title: z.string().trim().min(2).max(200),
+    startsAt: z.string().trim().min(1),
+    endsAt: z.string().trim().min(1).optional().nullable(),
+    sessionType: SessionTypeSchema,
+    meetingUrl: meetingUrlSchema,
+    notes: z.string().trim().max(8000).optional().nullable(),
+    weekly: WeeklySessionInputSchema.optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    requireOnlineMeetingUrl(value, ctx);
+  });
 export type CreateLiveSessionInput = z.infer<typeof CreateLiveSessionInputSchema>;
 
-export const UpdateLiveSessionInputSchema = z.object({
-  title: z.string().trim().min(2).max(200).optional(),
-  startsAt: z.string().trim().min(1).optional(),
-  endsAt: z.string().trim().min(1).optional().nullable(),
-  meetingUrl: z.string().trim().min(8).max(2000).optional(),
-  notes: z.string().trim().max(8000).optional().nullable(),
-});
+export const UpdateLiveSessionInputSchema = z
+  .object({
+    title: z.string().trim().min(2).max(200).optional(),
+    startsAt: z.string().trim().min(1).optional(),
+    endsAt: z.string().trim().min(1).optional().nullable(),
+    sessionType: SessionTypeSchema.optional(),
+    meetingUrl: meetingUrlSchema,
+    notes: z.string().trim().max(8000).optional().nullable(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.sessionType === SessionType.Online) {
+      requireOnlineMeetingUrl(value, ctx);
+    }
+  });
 export type UpdateLiveSessionInput = z.infer<typeof UpdateLiveSessionInputSchema>;
+
+export const SaveSessionAttendanceInputSchema = z.object({
+  marks: z
+    .array(
+      z.object({
+        userId: z.string().trim().min(1),
+        present: z.boolean(),
+      }),
+    )
+    .max(500),
+});
+export type SaveSessionAttendanceInput = z.infer<typeof SaveSessionAttendanceInputSchema>;
 
 export const CreateAnnouncementInputSchema = z.object({
   title: z.string().trim().min(2).max(200),

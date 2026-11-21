@@ -129,6 +129,7 @@ export async function listCourseSessions(userId: string, slug: string) {
     title: s.title,
     startsAt: s.startsAt.toISOString(),
     endsAt: s.endsAt?.toISOString() ?? null,
+    sessionType: s.sessionType,
     meetingUrl: s.meetingUrl,
     notes: s.notes,
   }));

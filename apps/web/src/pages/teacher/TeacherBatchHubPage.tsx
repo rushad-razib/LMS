@@ -41,6 +41,7 @@ export function TeacherBatchHubPage() {
   const tabs = [
     { to: base, label: "Overview", end: true },
     { to: `${base}/sessions`, label: "Sessions" },
+    { to: `${base}/students`, label: "Students" },
     { to: `${base}/materials`, label: "Materials" },
     { to: `${base}/announcements`, label: "Announcements" },
   ];

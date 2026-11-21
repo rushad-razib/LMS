@@ -56,6 +56,8 @@ import {
   TeacherBatchOverview,
 } from "@/pages/teacher/TeacherBatchHubPage";
 import { TeacherSessionsPage } from "@/pages/teacher/TeacherSessionsPage";
+import { TeacherBatchStudentsPage } from "@/pages/teacher/TeacherBatchStudentsPage";
+import { TeacherSchedulePage } from "@/pages/teacher/TeacherSchedulePage";
 import { TeacherMaterialsPage } from "@/pages/teacher/TeacherMaterialsPage";
 import { TeacherAnnouncementsPage } from "@/pages/teacher/TeacherAnnouncementsPage";
 import { TeacherProfilePage } from "@/pages/teacher/TeacherProfilePage";
@@ -160,15 +162,18 @@ export function AppRouter() {
               title="Teacher"
               nav={[
                 { to: "/teacher", label: "My Batches", end: true },
+                { to: "/teacher/schedule", label: "Schedule" },
                 { to: "/teacher/profile", label: "Profile" },
               ]}
             />
           }
         >
           <Route index element={<TeacherDashboardPage />} />
+          <Route path="schedule" element={<TeacherSchedulePage />} />
           <Route path="batches/:id" element={<TeacherBatchHubPage />}>
             <Route index element={<TeacherBatchOverview />} />
             <Route path="sessions" element={<TeacherSessionsPage />} />
+            <Route path="students" element={<TeacherBatchStudentsPage />} />
             <Route path="materials" element={<TeacherMaterialsPage />} />
             <Route path="announcements" element={<TeacherAnnouncementsPage />} />
           </Route>

@@ -104,6 +104,7 @@ model User {
   orders          Order[]
   enrollments     Enrollment[]
   installmentPlans InstallmentPlan[]
+  sessionAttendances SessionAttendance[]
 }
 
 model StudentProfile {
@@ -298,20 +299,38 @@ model Batch {
 }
 
 model LiveSession {
-  id         String    @id @default(cuid())
-  batchId    String
-  title      String
-  startsAt   DateTime
-  endsAt     DateTime?
-  meetingUrl String    @db.Text
-  notes      String?   @db.Text
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  batchId     String
+  title       String
+  startsAt    DateTime
+  endsAt      DateTime?
+  /// SessionType.Online
+  sessionType Int       @default(1)
+  meetingUrl  String?   @db.Text
+  notes       String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  batch Batch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  batch        Batch               @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  attendances  SessionAttendance[]
 
   @@index([batchId])
   @@index([startsAt])
+}
+
+model SessionAttendance {
+  id        String   @id @default(cuid())
+  sessionId String
+  userId    String
+  present   Boolean
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  session LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([userId])
 }
 
 model BatchMaterial {

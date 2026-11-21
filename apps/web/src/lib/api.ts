@@ -561,7 +561,7 @@ export const api = {
       `/teachers/batches/${batchId}/sessions`,
     ),
   teacherCreateSession: (batchId: string, body: TeacherSessionInput) =>
-    request<{ session: TeacherLiveSession }>(
+    request<{ session: TeacherLiveSession; sessions: TeacherLiveSession[] }>(
       `/teachers/batches/${batchId}/sessions`,
       { method: "POST", body },
     ),
@@ -578,6 +578,25 @@ export const api = {
     request<{ ok: true }>(`/teachers/batches/${batchId}/sessions/${sessionId}`, {
       method: "DELETE",
     }),
+  teacherStudents: (batchId: string) =>
+    request<{ students: BatchStudent[] }>(`/teachers/batches/${batchId}/students`),
+  teacherSessionAttendance: (batchId: string, sessionId: string) =>
+    request<{ session: TeacherLiveSession; students: SessionAttendanceStudent[] }>(
+      `/teachers/batches/${batchId}/sessions/${sessionId}/attendance`,
+    ),
+  teacherSaveAttendance: (
+    batchId: string,
+    sessionId: string,
+    marks: { userId: string; present: boolean }[],
+  ) =>
+    request<{ session: TeacherLiveSession; students: SessionAttendanceStudent[] }>(
+      `/teachers/batches/${batchId}/sessions/${sessionId}/attendance`,
+      { method: "PUT", body: { marks } },
+    ),
+  teacherSchedule: (month: string) =>
+    request<{ sessions: TeacherScheduleSession[] }>(
+      `/teachers/schedule?month=${encodeURIComponent(month)}`,
+    ),
   teacherMaterials: (batchId: string) =>
     request<{ materials: TeacherMaterial[] }>(
       `/teachers/batches/${batchId}/materials`,
@@ -738,7 +757,8 @@ export type StudentLiveSession = {
   title: string;
   startsAt: string;
   endsAt: string | null;
-  meetingUrl: string;
+  sessionType: number;
+  meetingUrl: string | null;
   notes: string | null;
 };
 
@@ -797,7 +817,8 @@ export type TeacherLiveSession = {
   title: string;
   startsAt: string;
   endsAt: string | null;
-  meetingUrl: string;
+  sessionType: number;
+  meetingUrl: string | null;
   notes: string | null;
   createdAt: string;
   updatedAt: string;
@@ -838,8 +859,25 @@ export type TeacherSessionInput = {
   title: string;
   startsAt: string;
   endsAt?: string | null;
-  meetingUrl: string;
+  sessionType: number;
+  meetingUrl?: string | null;
   notes?: string | null;
+  weekly?: { weekdays: number[]; until: string } | null;
+};
+
+export type BatchStudent = {
+  userId: string;
+  fullName: string;
+  email: string;
+  participationPercent: number | null;
+};
+
+export type SessionAttendanceStudent = BatchStudent & {
+  present: boolean;
+};
+
+export type TeacherScheduleSession = TeacherLiveSession & {
+  batch: { id: string; name: string };
 };
 
 export type TeacherProfile = {

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import { SessionType, SESSION_TYPE_LABELS } from "@arva/shared";
 import { api, ApiError, type StudentLiveSession } from "@/lib/api";
 import { formatDateTime, formatTime } from "@/lib/dates";
 import { AwaitingBatchNotice } from "./AwaitingBatchNotice";
@@ -63,19 +64,25 @@ export function StudentSessionsPage() {
                 </p>
                 <h2 className="mt-1 font-display text-lg font-semibold">{s.title}</h2>
                 <p className="mt-1 text-sm text-ink-muted">
+                  {s.sessionType === SessionType.Online
+                    ? SESSION_TYPE_LABELS[SessionType.Online]
+                    : SESSION_TYPE_LABELS[SessionType.Offline]}
+                  {" · "}
                   {formatDateTime(s.startsAt)}
                   {s.endsAt ? ` – ${formatTime(s.endsAt)}` : ""}
                 </p>
                 {s.notes && <p className="mt-2 text-sm text-ink-muted">{s.notes}</p>}
               </div>
-              <a
-                href={s.meetingUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg"
-              >
-                Join link
-              </a>
+              {s.sessionType === SessionType.Online && s.meetingUrl ? (
+                <a
+                  href={s.meetingUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-accent-fg"
+                >
+                  Join link
+                </a>
+              ) : null}
             </div>
           </li>
         );

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
+import { SessionType } from "@arva/shared";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
@@ -54,6 +55,7 @@ async function main() {
           title: "Orientation & toolkit setup",
           startsAt: past,
           endsAt: pastEnd,
+          sessionType: SessionType.Online,
           meetingUrl: "https://meet.google.com/lookup/arva-orientation",
           notes: "Recording available after class.",
         },
@@ -62,6 +64,7 @@ async function main() {
           title: "Live workshop",
           startsAt: start,
           endsAt: end,
+          sessionType: SessionType.Online,
           meetingUrl: "https://meet.google.com/lookup/arva-workshop",
           notes: "Join 5 minutes early.",
         },

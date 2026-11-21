@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import type { Express } from "express";
+import { SessionType, Weekday } from "@arva/shared";
 import { prisma } from "../../db/prisma.js";
 import {
   api,
@@ -152,6 +153,7 @@ describe("Phase 5 — Teacher portal", () => {
       .send({
         title: "Later class",
         startsAt: later,
+        sessionType: SessionType.Online,
         meetingUrl: "meet.google.com/lookup/later",
       });
     expect(second.status).toBe(201);
@@ -163,6 +165,7 @@ describe("Phase 5 — Teacher portal", () => {
         title: "Sooner class",
         startsAt: sooner,
         endsAt: new Date(Date.now() + 86_400_000 + 90 * 60_000).toISOString(),
+        sessionType: SessionType.Online,
         meetingUrl: "https://zoom.us/j/123456",
         notes: "Join early",
       });
@@ -201,6 +204,7 @@ describe("Phase 5 — Teacher portal", () => {
       .send({
         title: "Kickoff live",
         startsAt: new Date(Date.now() + 3_600_000).toISOString(),
+        sessionType: SessionType.Online,
         meetingUrl: "https://meet.google.com/lookup/kickoff",
       });
 
@@ -336,5 +340,98 @@ describe("Phase 5 — Teacher portal", () => {
     expect(del.status).toBe(200);
     expect(del.body.profile.cvFileName).toBeNull();
     expect(del.body.profile.cvUrl).toBeNull();
+  });
+
+  it("creates an offline class without a meeting link", async () => {
+    const teacher = await createTeacher();
+    const { batchId } = await createCourseAndBatch(teacher.userId);
+
+    const created = await api(app)
+      .post(`/api/v1/teachers/batches/${batchId}/sessions`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({
+        title: "Classroom lab",
+        startsAt: new Date(Date.now() + 86_400_000).toISOString(),
+        sessionType: SessionType.Offline,
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.session.sessionType).toBe(SessionType.Offline);
+    expect(created.body.session.meetingUrl).toBeNull();
+  });
+
+  it("creates one class for each selected weekday through the until date", async () => {
+    const teacher = await createTeacher();
+    const { batchId } = await createCourseAndBatch(teacher.userId);
+    const startsAt = new Date(2026, 10, 23, 19, 0, 0, 0);
+
+    const created = await api(app)
+      .post(`/api/v1/teachers/batches/${batchId}/sessions`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({
+        title: "Evening class",
+        startsAt: startsAt.toISOString(),
+        sessionType: SessionType.Offline,
+        weekly: {
+          weekdays: [Weekday.Monday, Weekday.Wednesday],
+          until: "2026-11-25",
+        },
+      });
+    expect(created.status).toBe(201);
+    expect(created.body.sessions).toHaveLength(2);
+    expect(created.body.sessions.map((s: { startsAt: string }) => new Date(s.startsAt).getDate())).toEqual([
+      23,
+      25,
+    ]);
+  });
+
+  it("counts an unmarked past class as absent in the participation rating", async () => {
+    const teacher = await createTeacher();
+    const student = await createStudent();
+    const { courseId, batchId } = await createCourseAndBatch(teacher.userId);
+    const enroll = await api(app)
+      .post("/api/v1/purchases/admin/enroll")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({
+        studentId: student.userId,
+        courseId,
+        paymentMethod: "CASH",
+        batchId,
+      });
+    expect(enroll.status).toBe(201);
+
+    const past = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const alsoPast = new Date(Date.now() - 86_400_000).toISOString();
+    const future = new Date(Date.now() + 86_400_000).toISOString();
+    const body = {
+      sessionType: SessionType.Offline,
+    };
+    const missed = await api(app)
+      .post(`/api/v1/teachers/batches/${batchId}/sessions`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({ ...body, title: "Missed", startsAt: past });
+    const attended = await api(app)
+      .post(`/api/v1/teachers/batches/${batchId}/sessions`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({ ...body, title: "Attended", startsAt: alsoPast });
+    await api(app)
+      .post(`/api/v1/teachers/batches/${batchId}/sessions`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({ ...body, title: "Upcoming", startsAt: future });
+    expect(missed.status).toBe(201);
+    expect(attended.status).toBe(201);
+
+    const saved = await api(app)
+      .put(`/api/v1/teachers/batches/${batchId}/sessions/${attended.body.session.id}/attendance`)
+      .set("Authorization", `Bearer ${teacher.token}`)
+      .send({ marks: [{ userId: student.userId, present: true }] });
+    expect(saved.status).toBe(200);
+    expect(saved.body.students[0].participationPercent).toBe(50);
+    expect(saved.body.students[0].present).toBe(true);
+
+    const roster = await api(app)
+      .get(`/api/v1/teachers/batches/${batchId}/students`)
+      .set("Authorization", `Bearer ${teacher.token}`);
+    expect(roster.status).toBe(200);
+    expect(roster.body.students[0].participationPercent).toBe(50);
   });
 });
