@@ -138,11 +138,14 @@ jobs:
             exit 1
           fi
 
-          # Keep process/thread use low — cPanel NPROC kills npm with
-          # "pthread_create: Resource temporarily unavailable" (exit 134).
+          # Keep process/thread use low — cPanel NPROC kills forks with
+          # EAGAIN / "pthread_create: Resource temporarily unavailable".
           export npm_config_jobs=1
           export npm_config_maxsockets=1
           export UV_THREADPOOL_SIZE=1
+          # Prisma otherwise spawns a checkpoint child that crashes the CLI
+          # with "spawn node EAGAIN" when the account is at its process limit.
+          export CHECKPOINT_DISABLE=1
           echo "Running npm install (single-threaded)…"
           npm install --omit=dev --no-audit --no-fund --prefer-offline --maxsockets=1
 
@@ -162,17 +165,16 @@ jobs:
           # Migrate can block forever on metadata locks if the Node app is still running.
           # Stop the cPanel Node app before deploy when applying schema changes.
           echo "Running prisma migrate deploy (120s timeout)…"
-          run_migrate() {
-            if [ -x ./node_modules/.bin/prisma ]; then
-              ./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma
-            else
-              npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma
-            fi
-          }
-          if command -v timeout >/dev/null 2>&1; then
-            timeout 120 bash -c 'if [ -x ./node_modules/.bin/prisma ]; then ./node_modules/.bin/prisma migrate deploy --schema=apps/api/prisma/schema.prisma; else npx prisma migrate deploy --schema=apps/api/prisma/schema.prisma; fi'
+          # Call prisma directly. `timeout … bash -c` adds another process under NPROC.
+          if [ -x ./node_modules/.bin/prisma ]; then
+            prisma_cmd=(./node_modules/.bin/prisma)
           else
-            run_migrate
+            prisma_cmd=(npx prisma)
+          fi
+          if command -v timeout >/dev/null 2>&1; then
+            timeout 120 "${prisma_cmd[@]}" migrate deploy --schema=apps/api/prisma/schema.prisma
+          else
+            "${prisma_cmd[@]}" migrate deploy --schema=apps/api/prisma/schema.prisma
           fi
 
           mkdir -p tmp
