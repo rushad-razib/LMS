@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, type GlobalNotice, ApiError } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 
 export function StudentNoticesPage() {
   const [notices, setNotices] = useState<GlobalNotice[]>([]);
@@ -26,7 +27,7 @@ export function StudentNoticesPage() {
             <h2 className="font-display text-lg font-semibold">{n.title}</h2>
             {n.publishedAt ? (
               <p className="mt-1 text-xs text-ink-muted">
-                {new Date(n.publishedAt).toLocaleString()}
+                {formatDateTime(n.publishedAt)}
               </p>
             ) : null}
             <p className="mt-3 whitespace-pre-wrap text-sm">{n.body}</p>

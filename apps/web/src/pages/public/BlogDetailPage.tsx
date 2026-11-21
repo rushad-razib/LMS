@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Seo } from "@/components/Seo";
 import { api, type BlogPost, ApiError } from "@/lib/api";
+import { formatDate } from "@/lib/dates";
 
 export function BlogDetailPage() {
   const { slug } = useParams();
@@ -51,7 +52,7 @@ export function BlogDetailPage() {
       <h1 className="mt-4 font-display text-3xl font-semibold">{post.title}</h1>
       {post.publishedAt ? (
         <p className="mt-2 text-sm text-ink-muted">
-          {new Date(post.publishedAt).toLocaleDateString()}
+          {formatDate(post.publishedAt)}
         </p>
       ) : null}
       {post.coverImageUrl ? (

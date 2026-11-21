@@ -14,9 +14,11 @@ import {
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
+import { DateTimeField } from "@/components/DateField";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDateTime, formatTime } from "@/lib/dates";
 
 function toDateTimeLocal(iso: string) {
   const d = new Date(iso);
@@ -179,13 +181,8 @@ export function TeacherSessionsPage() {
         accessorFn: (row) => row.startsAt,
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-ink-muted">
-            {new Date(row.original.startsAt).toLocaleString()}
-            {row.original.endsAt
-              ? ` – ${new Date(row.original.endsAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}`
-              : ""}
+            {formatDateTime(row.original.startsAt)}
+            {row.original.endsAt ? ` – ${formatTime(row.original.endsAt)}` : ""}
           </span>
         ),
       },
@@ -256,20 +253,10 @@ export function TeacherSessionsPage() {
             />
           </Field>
           <Field label="Starts" error={fieldErrors.startsAt}>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={startsAt}
-              onChange={(e) => setStartsAt(e.target.value)}
-            />
+            <DateTimeField className={inputClass} value={startsAt} onChange={setStartsAt} />
           </Field>
           <Field label="Ends (optional)" error={fieldErrors.endsAt}>
-            <input
-              type="datetime-local"
-              className={inputClass}
-              value={endsAt}
-              onChange={(e) => setEndsAt(e.target.value)}
-            />
+            <DateTimeField className={inputClass} value={endsAt} onChange={setEndsAt} />
           </Field>
           <Field label="Meeting URL" error={fieldErrors.meetingUrl}>
             <input

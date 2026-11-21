@@ -32,6 +32,12 @@ import {
   startOfUtcDay,
 } from "./installments.util.js";
 
+function formatDayMonthYear(isoDate: string) {
+  const [year, month, day] = isoDate.split("-");
+  if (!year || !month || !day) return isoDate;
+  return `${day}/${month}/${year}`;
+}
+
 function publicApiOrigin() {
   const env = loadEnv();
   const origin = (env.API_ORIGIN || env.WEB_ORIGIN).replace(/\/$/, "");
@@ -777,7 +783,7 @@ export async function sendInstallmentDueReminders(now = new Date()) {
 
   let sent = 0;
   for (const inst of dueInstallments) {
-    const payBy = inst.payByDate.toISOString().slice(0, 10);
+    const payBy = formatDayMonthYear(inst.payByDate.toISOString().slice(0, 10));
     try {
       await sendInstallmentDueStudentEmail(
         inst.plan.user.email,

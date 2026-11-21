@@ -18,6 +18,7 @@ import { DataTable } from "@/components/DataTable";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDate } from "@/lib/dates";
 
 type AdminUserRow = {
   id: string;
@@ -219,7 +220,7 @@ export function AdminUsersPage() {
       {
         accessorKey: "createdAt",
         header: "Created",
-        cell: ({ row }) => new Date(row.original.createdAt).toLocaleDateString(),
+        cell: ({ row }) => formatDate(row.original.createdAt),
       },
       {
         id: "actions",

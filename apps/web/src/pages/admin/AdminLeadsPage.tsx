@@ -4,6 +4,7 @@ import { api, type Lead, ApiError } from "@/lib/api";
 import { toast } from "@/lib/toast";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDateTime } from "@/lib/dates";
 
 export function AdminLeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -34,7 +35,7 @@ export function AdminLeadsPage() {
       {
         accessorKey: "createdAt",
         header: "Received",
-        cell: ({ row }) => new Date(row.original.createdAt).toLocaleString(),
+        cell: ({ row }) => formatDateTime(row.original.createdAt),
       },
       {
         id: "actions",

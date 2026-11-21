@@ -7,6 +7,7 @@ import {
   type FieldErrors,
 } from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
+import { DateField } from "@/components/DateField";
 import { Field } from "@/components/Field";
 import { useAuth } from "@/features/auth/AuthProvider";
 
@@ -156,11 +157,10 @@ export function StudentProfilePage() {
               Personal
             </h2>
             <Field label="Date of birth" error={fieldErrors.dateOfBirth}>
-              <input
-                type="date"
+              <DateField
                 className="w-full rounded-lg border border-border bg-surface px-3 py-2"
                 value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
+                onChange={setDateOfBirth}
               />
             </Field>
             <Field label="Gender" error={fieldErrors.gender}>

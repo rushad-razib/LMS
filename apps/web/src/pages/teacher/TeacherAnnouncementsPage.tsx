@@ -17,6 +17,7 @@ import { DataTable } from "@/components/DataTable";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDateTime } from "@/lib/dates";
 
 const inputClass = "rounded-lg border border-border bg-surface px-3 py-2 text-ink";
 
@@ -150,7 +151,7 @@ export function TeacherAnnouncementsPage() {
         header: "Posted",
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-ink-muted">
-            {new Date(row.original.createdAt).toLocaleString()}
+            {formatDateTime(row.original.createdAt)}
           </span>
         ),
       },

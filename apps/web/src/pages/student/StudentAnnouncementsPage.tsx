@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, ApiError, type StudentAnnouncement } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 import { AwaitingBatchNotice } from "./AwaitingBatchNotice";
 
 export function StudentAnnouncementsPage() {
@@ -49,7 +50,7 @@ export function StudentAnnouncementsPage() {
           className="rounded-xl border border-border bg-surface-elevated p-5"
         >
           <p className="text-xs text-ink-muted">
-            {new Date(a.createdAt).toLocaleString()}
+            {formatDateTime(a.createdAt)}
           </p>
           <h2 className="mt-1 font-display text-lg font-semibold">{a.title}</h2>
           <p className="mt-2 whitespace-pre-wrap text-sm text-ink-muted">{a.body}</p>

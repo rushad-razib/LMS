@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useParams } from "react-router-dom";
 import { api, ApiError, type TeacherBatchHub } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 
 export function TeacherBatchHubPage() {
   const { id } = useParams();
@@ -105,7 +106,7 @@ export function TeacherBatchOverview() {
           <>
             <p className="mt-2 font-medium">{batch.upcomingSession.title}</p>
             <p className="mt-1 text-sm text-ink-muted">
-              {new Date(batch.upcomingSession.startsAt).toLocaleString()}
+              {formatDateTime(batch.upcomingSession.startsAt)}
             </p>
             <Link
               to={`/teacher/batches/${batch.id}/sessions`}

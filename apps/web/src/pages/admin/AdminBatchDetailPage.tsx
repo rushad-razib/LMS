@@ -4,15 +4,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { api, ApiError, type BatchOverview } from "@/lib/api";
 import { DataTable } from "@/components/DataTable";
 import { PageHeader } from "@/components/PageHeader";
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+import { formatDate } from "@/lib/dates";
 
 export function AdminBatchDetailPage() {
   const { batchId } = useParams();

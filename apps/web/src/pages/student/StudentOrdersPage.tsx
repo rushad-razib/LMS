@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { api, ApiError, type StudentOrderRow } from "@/lib/api";
+import { formatDateTime } from "@/lib/dates";
 
 export function StudentOrdersPage() {
   const [orders, setOrders] = useState<StudentOrderRow[]>([]);
@@ -54,7 +55,7 @@ export function StudentOrdersPage() {
                     {o.amountBdt.toLocaleString()}
                   </p>
                   <p className="mt-1 text-xs text-ink-muted">
-                    {new Date(o.createdAt).toLocaleString()} · {o.tranId}
+                    {formatDateTime(o.createdAt)} · {o.tranId}
                   </p>
                   {o.enrollment && (
                     <p className="mt-2 text-sm text-ink-muted">

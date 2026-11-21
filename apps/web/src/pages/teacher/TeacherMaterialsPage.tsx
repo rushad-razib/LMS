@@ -14,6 +14,7 @@ import { DataTable } from "@/components/DataTable";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDateTime } from "@/lib/dates";
 
 function formatBytes(n: number) {
   if (n < 1024) return `${n} B`;
@@ -135,7 +136,7 @@ export function TeacherMaterialsPage() {
         header: "Uploaded",
         cell: ({ row }) => (
           <span className="whitespace-nowrap text-ink-muted">
-            {new Date(row.original.createdAt).toLocaleString()}
+            {formatDateTime(row.original.createdAt)}
           </span>
         ),
       },

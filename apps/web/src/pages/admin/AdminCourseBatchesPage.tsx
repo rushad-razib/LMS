@@ -16,6 +16,7 @@ import {
 import { toast } from "@/lib/toast";
 import { useConfirm } from "@/components/ConfirmProvider";
 import { DataTable } from "@/components/DataTable";
+import { DateField } from "@/components/DateField";
 import { Field } from "@/components/Field";
 import { Modal } from "@/components/Modal";
 import { PageHeader } from "@/components/PageHeader";
@@ -342,19 +343,17 @@ export function AdminCourseBatchesPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Start date" error={fieldErrors.startDate}>
-              <input
-                type="date"
+              <DateField
                 className="rounded-lg border border-border bg-surface px-3 py-2"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={setStartDate}
               />
             </Field>
             <Field label="End date" error={fieldErrors.endDate}>
-              <input
-                type="date"
+              <DateField
                 className="rounded-lg border border-border bg-surface px-3 py-2"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                onChange={setEndDate}
               />
             </Field>
           </div>

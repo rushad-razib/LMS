@@ -9,6 +9,7 @@ import {
 } from "@/lib/formErrors";
 import { toast } from "@/lib/toast";
 import { PageHeader } from "@/components/PageHeader";
+import { formatDate } from "@/lib/dates";
 
 const PAYMENT_METHODS: AdminPaymentMethod[] = [
   "CASH",
@@ -16,15 +17,6 @@ const PAYMENT_METHODS: AdminPaymentMethod[] = [
   "SSLCOMMERZ_OFFLINE",
   "OTHER",
 ];
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Date(value).toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 export function AdminStudentDetailPage() {
   const { userId } = useParams();
@@ -147,7 +139,7 @@ export function AdminStudentDetailPage() {
           </div>
           <div>
             <dt className="text-xs uppercase text-ink-muted">Date of birth</dt>
-            <dd className="mt-1">{student.dateOfBirth || "—"}</dd>
+            <dd className="mt-1">{formatDate(student.dateOfBirth)}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase text-ink-muted">Gender</dt>

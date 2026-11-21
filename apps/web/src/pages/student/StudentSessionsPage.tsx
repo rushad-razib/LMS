@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, ApiError, type StudentLiveSession } from "@/lib/api";
+import { formatDateTime, formatTime } from "@/lib/dates";
 import { AwaitingBatchNotice } from "./AwaitingBatchNotice";
 
 export function StudentSessionsPage() {
@@ -62,13 +63,8 @@ export function StudentSessionsPage() {
                 </p>
                 <h2 className="mt-1 font-display text-lg font-semibold">{s.title}</h2>
                 <p className="mt-1 text-sm text-ink-muted">
-                  {start.toLocaleString()}
-                  {s.endsAt
-                    ? ` – ${new Date(s.endsAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}`
-                    : ""}
+                  {formatDateTime(s.startsAt)}
+                  {s.endsAt ? ` – ${formatTime(s.endsAt)}` : ""}
                 </p>
                 {s.notes && <p className="mt-2 text-sm text-ink-muted">{s.notes}</p>}
               </div>
