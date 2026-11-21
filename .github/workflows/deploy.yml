@@ -162,8 +162,19 @@ jobs:
             npx prisma generate --schema=apps/api/prisma/schema.prisma
           fi
 
-          # Migrate can block forever on metadata locks if the Node app is still running.
-          # Stop the cPanel Node app before deploy when applying schema changes.
+          # Migrate waits forever on a MySQL metadata lock while this app's
+          # connections are open. `timeout` then exits 124. Stop the app first;
+          # tmp/restart.txt below starts it again.
+          echo "Stopping Node app so migrate can lock the database…"
+          if command -v pkill >/dev/null 2>&1; then
+            pkill -u "$(id -u)" -f "lsnode:${DEPLOY_PATH}" || true
+            pkill -u "$(id -u)" -f "${DEPLOY_PATH}/apps/api/dist/server.js" || true
+            pkill -u "$(id -u)" -f "schema-engine" || true
+            sleep 1
+            pkill -u "$(id -u)" -f "lsnode:${DEPLOY_PATH}" || true
+            pkill -u "$(id -u)" -f "${DEPLOY_PATH}/apps/api/dist/server.js" || true
+          fi
+
           echo "Running prisma migrate deploy (120s timeout)…"
           # Call prisma directly. `timeout … bash -c` adds another process under NPROC.
           if [ -x ./node_modules/.bin/prisma ]; then
